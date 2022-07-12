@@ -108,9 +108,8 @@ contract FixedStrategy is ERC20, Ownable {
         uint256 _prev = angleVault.balanceOf(address(this));
 
         angleVault.deposit(address(this), amount, earnFSD);
-
-        uint256 _after = angleVault.balanceOf(address(this));
-        uint256 _diff = _after - _prev;
+    
+        uint256 _diff = angleVault.balanceOf(address(this)) - _prev;
 
         if (totalSupply() == 0) {
             _mint(msg.sender, _diff);
