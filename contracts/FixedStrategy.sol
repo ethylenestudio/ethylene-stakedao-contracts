@@ -85,7 +85,7 @@ contract FixedStrategy is ERC20, Ownable {
 
     /**
      * @param amount uint256 - amount to deposit into stake contract
-     * @param earnFSD bool - user must decide whether or not to call earn() function of Stake contract
+     * @param earnFSD bool - user must decide whether or not to call comp() function of Stake contract
      * @param earnFT bool - user must decide whether or not to call harvest() function of this contract
      */
     function deposit(
@@ -121,7 +121,7 @@ contract FixedStrategy is ERC20, Ownable {
             _mint(msg.sender, (_diff * 1e18) / pricePerShare());
         }
 
-        if (earnFT) earn();
+        if (earnFT) comp();
 
         emit Deposit(msg.sender, amount);
     }
@@ -180,7 +180,7 @@ contract FixedStrategy is ERC20, Ownable {
         // }
     }
 
-    function earn() public {
+    function comp() public {
         uint256 tokenBalance = token.balanceOf(address(this)) - collectedFee;
         token.approve(address(angleVault), tokenBalance);
         angleVault.deposit(address(this), tokenBalance, false);
