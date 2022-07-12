@@ -98,7 +98,7 @@ contract FixedStrategy is ERC20, Ownable {
         initialPPS[msg.sender] = pricePerShare();
 
         token.safeTransferFrom(msg.sender, address(this), amount);
-        token.approve(address(angleVault), amount);
+        token.safeIncreaseAllowance(address(angleVault), amount);
 
         if (!earnFT) {
             uint256 cut = (amount * claimerFee) / 10000;
@@ -182,7 +182,7 @@ contract FixedStrategy is ERC20, Ownable {
 
     function comp() public {
         uint256 tokenBalance = token.balanceOf(address(this)) - collectedFee;
-        token.approve(address(angleVault), tokenBalance);
+        token.safeIncreaseAllowance(address(angleVault), tokenBalance);
         angleVault.deposit(address(this), tokenBalance, false);
 
         emit Compounded(msg.sender, tokenBalance);
@@ -191,5 +191,3 @@ contract FixedStrategy is ERC20, Ownable {
 
 // TODO: REENTRANCY CHECK
 // TODO: CONFIGURE IN STYLE GUIDE
-// TODO: ADD EVENTS
-// TODO: approve -> safe methods
