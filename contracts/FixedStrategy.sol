@@ -87,13 +87,13 @@ contract FixedStrategy is ERC20, Ownable {
 
     /**
      * @param amount uint256 - amount to deposit into stake contract
-     * @param earnFSD bool - user must decide whether or not to call comp() function of Stake contract
-     * @param earnFT bool - user must decide whether or not to call harvest() function of this contract
+     * @param earnFSD bool - user must decide whether or not to call earn() function of Stake contract
+     * @param compFT bool - user must decide whether or not to call comp() function of this contract
      */
     function deposit(
         uint256 amount,
         bool earnFSD,
-        bool earnFT
+        bool compFT
     ) external {
         require(initialPPS[msg.sender] == 0, "[deposit] Already locked!");
         stakeTimestamps[msg.sender] = block.timestamp;
@@ -102,7 +102,7 @@ contract FixedStrategy is ERC20, Ownable {
         token.safeTransferFrom(msg.sender, address(this), amount);
         token.safeIncreaseAllowance(address(angleVault), amount);
 
-        if (!earnFT) {
+        if (!compFT) {
             uint256 cut = (amount * claimerFee) / 10000;
             amount -= cut;
             collectedFee += cut;
@@ -114,7 +114,7 @@ contract FixedStrategy is ERC20, Ownable {
         uint256 _prev = angleVault.balanceOf(address(this));
 
         angleVault.deposit(address(this), amount, earnFSD);
-    
+
         uint256 _diff = angleVault.balanceOf(address(this)) - _prev;
 
         if (totalSupply() == 0) {
@@ -123,7 +123,7 @@ contract FixedStrategy is ERC20, Ownable {
             _mint(msg.sender, (_diff * 1e18) / pricePerShare());
         }
 
-        if (earnFT) comp();
+        if (compFT) comp();
 
         emit Deposit(msg.sender, amount);
     }
