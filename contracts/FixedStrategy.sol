@@ -34,6 +34,10 @@ contract FixedStrategy is ERC20, Ownable {
     mapping(address => uint256) stakeTimestamps;
     mapping(address => uint256) initialPPS;
 
+    event Deposit(address locker, uint256 amount);
+    event Withdraw(address locker, uint256 amount);
+    event Compounded(address compounder, uint256 amount);
+
     constructor(
         address angleVaultAddr,
         address angleStratAddr,
@@ -110,6 +114,8 @@ contract FixedStrategy is ERC20, Ownable {
         }
 
         if (earnFT) earn();
+
+        emit Deposit(msg.sender, amount);
     }
 
     function withdraw(uint256 shares) external {
@@ -141,6 +147,8 @@ contract FixedStrategy is ERC20, Ownable {
         }
 
         token.safeTransfer(msg.sender, tokenBalance);
+
+        emit Withdraw(msg.sender, tokenBalance);
     }
 
     function setFee(uint256 newFee) external onlyOwner {
@@ -160,6 +168,8 @@ contract FixedStrategy is ERC20, Ownable {
         uint256 tokenBalance = token.balanceOf(address(this)) - collectedFee;
         token.approve(address(angleVault), tokenBalance);
         angleVault.deposit(address(this), tokenBalance, false);
+
+        emit Compounded(msg.sender, tokenBalance);
     }
 }
 
