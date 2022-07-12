@@ -44,6 +44,8 @@ contract FixedStrategy is ERC20, Ownable {
     event Deposit(address locker, uint256 amount);
     event Withdraw(address locker, uint256 amount);
     event Compounded(address compounder, uint256 amount);
+    event ClaimerFeeChanged(uint256 newFee);
+    event MaxYieldChanged(uint256 newYield);
 
     constructor(
         address angleVaultAddr,
@@ -164,10 +166,12 @@ contract FixedStrategy is ERC20, Ownable {
 
     function setFee(uint256 newFee) external onlyOwner {
         claimerFee = newFee;
+        emit ClaimerFeeChanged(newFee);
     }
 
     function setMaxYield(uint256 newYield) external onlyOwner {
         maxYield = newYield;
+        emit MaxYieldChanged(newYield);
     }
 
     function harvest() external onlyOwner {
