@@ -1,0 +1,41 @@
+deposit & withdraw
+
+## user1 deposits LP
+-- check if user1 has the same amount of share of LP
+## user2 deposits LP
+--check the share of the second user
+## user1 withdraws 50% of LP
+--check user1 share
+## user tries to deposit again
+--expect error
+##user2 withdraws all LP
+--check user2 share
+##user1 withdraws 50% of LP
+--check user1 share
+##user1 tries to deposit again
+--expect share==amount again
+
+harvest & earn basic
+
+##random sends angl & sdt to contract
+##owner calls harvest
+* initial deposit with earn = true
+## check deposit & withdraw
+--expect contract to have no tokens at the end
+
+harvest & earn
+
+##user1 deposits LP
+##user2 deposits LP
+##random sends angl & sdt (more than 8%/yr)
+##owner calls harvest
+##user3 deposits with earn = true
+##user2 withdraws 50% of LP
+--expect maxearning of 50% of shares
+#user1 withdraws all
+#user3 withdraws all
+#user2 withdraws rest
+--expect user2 has maxearning of 50% of init shares
+--expect contract has no balance of vault
+
+@check all above after setFee & setMaxYield

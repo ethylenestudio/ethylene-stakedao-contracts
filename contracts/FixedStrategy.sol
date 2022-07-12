@@ -6,10 +6,17 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 interface IAngle {
-    function deposit(address _staker, uint256 _amount, bool _earn) external;
+    function deposit(
+        address _staker,
+        uint256 _amount,
+        bool _earn
+    ) external;
+
     function withdraw(uint256 _shares) external;
-    function balanceOf(address account) external view returns(uint256);
-    function approve(address spender, uint256 amount) external returns(bool);
+
+    function balanceOf(address account) external view returns (uint256);
+
+    function approve(address spender, uint256 amount) external returns (bool);
 }
 
 interface IStrats {
@@ -61,16 +68,17 @@ contract FixedStrategy is ERC20, Ownable {
                 : (angleVault.balanceOf(address(this)) * 1e18) / totalSupply();
     }
 
-    function currentRatioForUser() public view returns(uint256) {
-        uint256 ppsChange = (pricePerShare() - initialPPS[msg.sender]) * 1000 / initialPPS[msg.sender];
+    function currentRatioForUser() public view returns (uint256) {
+        uint256 ppsChange = ((pricePerShare() - initialPPS[msg.sender]) *
+            1000) / initialPPS[msg.sender];
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
 
-        return (ppsChange * 365 days / timePast);
+        return ((ppsChange * 365 days) / timePast);
     }
 
-    function maxEarningToDate(uint256 amount) public view returns(uint256) {
+    function maxEarningToDate(uint256 amount) public view returns (uint256) {
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
-        return amount * (1000 + (timePast * maxYield / 365 days)) / 1000;        
+        return (amount * (1000 + ((timePast * maxYield) / 365 days))) / 1000;
     }
 
     //////////////////////////// EXTERNAL FUNCTIONS ////////////////////////////
@@ -132,16 +140,19 @@ contract FixedStrategy is ERC20, Ownable {
         _burn(msg.sender, shares);
 
         if (tokenBalance + collectedFee > token.balanceOf(address(this)))
-            angleVault.withdraw(tokenBalance + collectedFee - token.balanceOf(address(this)));
-
+            angleVault.withdraw(
+                tokenBalance + collectedFee - token.balanceOf(address(this))
+            );
 
         if (balanceOf(msg.sender) == 0) {
-            delete(initialPPS[msg.sender]);
-            delete(stakeTimestamps[msg.sender]);
+            delete (initialPPS[msg.sender]);
+            delete (stakeTimestamps[msg.sender]);
         }
 
-        if (currentRatioForUser() >= maxYield){
-            uint256 withdrawAmount = maxEarningToDate(shares * initialPPS[msg.sender] / 1e18);
+        if (currentRatioForUser() >= maxYield) {
+            uint256 withdrawAmount = maxEarningToDate(
+                (shares * initialPPS[msg.sender]) / 1e18
+            );
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
             tokenBalance = withdrawAmount;
         }
@@ -155,8 +166,13 @@ contract FixedStrategy is ERC20, Ownable {
         claimerFee = newFee;
     }
 
+    function setMaxYield(uint256 newYield) external onlyOwner {
+        maxYield = newYield;
+    }
+
     function harvest() external onlyOwner {
         angleStrat.claim(address(token));
+        //eğer claim edemiyorsak ve kontratımızda sdt angl var ise onları değiştiremeden yukardaki satır revert eder. tokenlar sıkışır.
         //implement swapping tokens and receiving LP
 
         // for(uint256 i = 0; i < rewardTokens.length; i++) {
@@ -164,7 +180,7 @@ contract FixedStrategy is ERC20, Ownable {
         // }
     }
 
-    function earn() private {
+    function earn() public {
         uint256 tokenBalance = token.balanceOf(address(this)) - collectedFee;
         token.approve(address(angleVault), tokenBalance);
         angleVault.deposit(address(this), tokenBalance, false);
