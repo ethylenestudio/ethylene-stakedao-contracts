@@ -15,3 +15,5 @@ describe("FixedStrategyDW", function () {
     );
   });
 });
+
+//stakeDAO claims angle => AngleStrategy.claim(address -> sanFRAX/EUR LP address) -> sends to liquidityGauge

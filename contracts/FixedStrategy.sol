@@ -29,7 +29,8 @@ contract FixedStrategy is Ownable {
     address public constant ANGL = 0x31429d1856aD1377A8A0079410B297e1a9e214c2;
     address public constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
     address public constant FRAX = 0x853d955aCEf822Db058eb8505911ED77F175b99e;
-    address public constant ANGLE_POOL_MANAGER = 0x6b4eE7352406707003bC6f6b96595FD35925af48;
+    address public constant ANGLE_POOL_MANAGER =
+        0x6b4eE7352406707003bC6f6b96595FD35925af48;
 
     ///////////////////// TYPES /////////////////////
 
@@ -122,7 +123,7 @@ contract FixedStrategy is Ownable {
     ///////////////////// OWNER MANAGEMENTS /////////////////////
 
     function claim() external onlyOwner {
-        angleStrat.claim(address(token));
+        angleGauge.claim_rewards();
     }
 
     function harvest(
