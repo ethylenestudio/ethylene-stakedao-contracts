@@ -146,7 +146,7 @@ contract FixedStrategy is Ownable {
         );
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            //TODO: APPROVE
+            
             if (IERC20(rewardTokens[i]).balanceOf(address(this)) == 0) continue;
 
             IERC20(rewardTokens[i]).safeIncreaseAllowance(
