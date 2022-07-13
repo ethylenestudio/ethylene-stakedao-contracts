@@ -27,9 +27,39 @@ interface IGauge {
     function balanceOf(address account) external view returns (uint256);
 }
 
+interface IAggregationExecutor {
+    /// @notice Make calls on `msgSender` with specified data
+    function callBytes(address msgSender, bytes calldata data) external payable; // 0x2636f7f8
+}
+
+struct SwapDescription {
+    IERC20 srcToken;
+    IERC20 dstToken;
+    address payable srcReceiver;
+    address payable dstReceiver;
+    uint256 amount;
+    uint256 minReturnAmount;
+    uint256 flags;
+    bytes permit;
+}
+
+interface IAggregationRouterV4 {
+    function swap(
+        IAggregationExecutor caller,
+        SwapDescription calldata desc,
+        bytes calldata data
+    )
+        external
+        returns (
+            uint256 returnAmount,
+            uint256 spentAmount,
+            uint256 gasLeft
+        );
+}
+
 contract FixedStrategy is Ownable {
     using SafeERC20 for IERC20;
-
+    IAggregationRouterV4 oneInchRouter;
     IAngle angleVault; // angleVault
     IStrats angleStrat; // angleStrat
     IGauge angleGauge; //angleGauge
@@ -54,12 +84,14 @@ contract FixedStrategy is Ownable {
     constructor(
         address angleVaultAddr,
         address angleStratAddr,
+        address oneInchAddr,
         address gaugeAdd,
         address lockToken
     ) {
         angleVault = IAngle(angleVaultAddr);
         angleStrat = IStrats(angleStratAddr);
         angleGauge = IGauge(gaugeAdd);
+        oneInchRouter = IAggregationRouterV4(oneInchAddr);
         token = IERC20(lockToken);
         maxYield = 80;
         rewardTokens.push(ANGL);
