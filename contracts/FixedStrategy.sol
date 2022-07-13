@@ -23,16 +23,20 @@ interface IStrats {
     function claim(address _token) external;
 }
 
-contract FixedStrategy is ERC20, Ownable {
+interface IGauge {
+    function balanceOf(address account) external view returns (uint256);
+}
+
+contract FixedStrategy is Ownable {
     using SafeERC20 for IERC20;
 
     IAngle angleVault; // angleVault
     IStrats angleStrat; // angleStrat
+    IGauge angleGauge; //angleGauge
     IERC20 token; //sanFRAX_EUR
 
-    uint256 public claimerFee;
-    uint256 public collectedFee;
     uint256 public maxYield;
+    uint256 public totalSupply;
 
     address[] public rewardTokens;
     address public constant ANGL = 0x31429d1856aD1377A8A0079410B297e1a9e214c2;
@@ -40,22 +44,23 @@ contract FixedStrategy is ERC20, Ownable {
 
     mapping(address => uint256) stakeTimestamps;
     mapping(address => uint256) initialPPS;
+    mapping(address => uint256) userToShare;
 
     event Deposit(address locker, uint256 amount);
     event Withdraw(address locker, uint256 amount);
     event Compounded(address compounder, uint256 amount);
-    event ClaimerFeeChanged(uint256 newFee);
     event MaxYieldChanged(uint256 newYield);
 
     constructor(
         address angleVaultAddr,
         address angleStratAddr,
+        address gaugeAdd,
         address lockToken
-    ) ERC20("sanFRAX_EUR_FSTR", "SFESTR") {
+    ) {
         angleVault = IAngle(angleVaultAddr);
         angleStrat = IStrats(angleStratAddr);
+        angleGauge = IGauge(gaugeAdd);
         token = IERC20(lockToken);
-        claimerFee = 10;
         maxYield = 80;
         rewardTokens.push(ANGL);
         rewardTokens.push(SDT);
@@ -65,9 +70,10 @@ contract FixedStrategy is ERC20, Ownable {
 
     function pricePerShare() public view returns (uint256) {
         return
-            (totalSupply() == 0)
+            (totalSupply == 0)
                 ? 1e18
-                : (angleVault.balanceOf(address(this)) * 1e18) / totalSupply();
+                : ((angleGauge.balanceOf(address(this)) +
+                    token.balanceOf(address(this))) * 1e18) / totalSupply;
     }
 
     function currentRatioForUser() public view returns (uint256) {
@@ -87,50 +93,23 @@ contract FixedStrategy is ERC20, Ownable {
 
     /**
      * @param amount uint256 - amount to deposit into stake contract
-     * @param earnFSD bool - user must decide whether or not to call earn() function of Stake contract
-     * @param compFT bool - user must decide whether or not to call comp() function of this contract
      */
-    function deposit(
-        uint256 amount,
-        bool earnFSD,
-        bool compFT
-    ) external {
+    function deposit(uint256 amount) external {
         require(initialPPS[msg.sender] == 0, "[deposit] Already locked!");
         stakeTimestamps[msg.sender] = block.timestamp;
         initialPPS[msg.sender] = pricePerShare();
 
         token.safeTransferFrom(msg.sender, address(this), amount);
-        token.safeIncreaseAllowance(address(angleVault), amount);
 
-        if (!compFT) {
-            uint256 cut = (amount * claimerFee) / 10000;
-            amount -= cut;
-            collectedFee += cut;
-        } else {
-            amount += collectedFee;
-            collectedFee = 0;
-        }
-
-        uint256 _prev = angleVault.balanceOf(address(this));
-
-        angleVault.deposit(address(this), amount, earnFSD);
-
-        uint256 _diff = angleVault.balanceOf(address(this)) - _prev;
-
-        if (totalSupply() == 0) {
-            _mint(msg.sender, _diff);
-        } else {
-            _mint(msg.sender, (_diff * 1e18) / pricePerShare());
-        }
-
-        if (compFT) comp();
+        userToShare[msg.sender] += (amount * 1e18) / pricePerShare();
+        totalSupply += (amount * 1e18) / pricePerShare();
 
         emit Deposit(msg.sender, amount);
     }
 
     function withdraw(uint256 shares) external {
         require(
-            balanceOf(msg.sender) >= shares,
+            userToShare[msg.sender] >= shares,
             "[withdraw] Insufficient balance!"
         );
         require(
@@ -139,14 +118,13 @@ contract FixedStrategy is ERC20, Ownable {
         );
 
         uint256 tokenBalance = (shares * pricePerShare()) / 1e18;
-        _burn(msg.sender, shares);
+        userToShare[msg.sender] -= shares;
+        totalSupply -= shares;
 
-        if (tokenBalance + collectedFee > token.balanceOf(address(this)))
-            angleVault.withdraw(
-                tokenBalance + collectedFee - token.balanceOf(address(this))
-            );
+        if (tokenBalance > token.balanceOf(address(this)))
+            angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
 
-        if (balanceOf(msg.sender) == 0) {
+        if (userToShare[msg.sender] == 0) {
             delete (initialPPS[msg.sender]);
             delete (stakeTimestamps[msg.sender]);
         }
@@ -164,11 +142,6 @@ contract FixedStrategy is ERC20, Ownable {
         emit Withdraw(msg.sender, tokenBalance);
     }
 
-    function setFee(uint256 newFee) external onlyOwner {
-        claimerFee = newFee;
-        emit ClaimerFeeChanged(newFee);
-    }
-
     function setMaxYield(uint256 newYield) external onlyOwner {
         maxYield = newYield;
         emit MaxYieldChanged(newYield);
@@ -184,10 +157,10 @@ contract FixedStrategy is ERC20, Ownable {
         // }
     }
 
-    function comp() public {
-        uint256 tokenBalance = token.balanceOf(address(this)) - collectedFee;
+    function comp(bool isEarn) public {
+        uint256 tokenBalance = token.balanceOf(address(this));
         token.safeIncreaseAllowance(address(angleVault), tokenBalance);
-        angleVault.deposit(address(this), tokenBalance, false);
+        angleVault.deposit(address(this), tokenBalance, isEarn);
 
         emit Compounded(msg.sender, tokenBalance);
     }
