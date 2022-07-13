@@ -21,6 +21,7 @@ contract FixedStrategy is Ownable {
     IERC20 token; //sanFRAX_EUR
 
     ///////////////////// STATE VARIABLES /////////////////////
+    bool emergency;
 
     uint256 public maxYield;
     uint256 public totalSupply;
@@ -42,9 +43,11 @@ contract FixedStrategy is Ownable {
 
     event Deposit(address locker, uint256 amount);
     event Withdraw(address locker, uint256 amount);
+    event EmergencyWithdraw(address locker, uint256 amount);
     event Compounded(address compounder, uint256 amount);
     event MaxYieldChanged(uint256 newYield);
     event Harvested();
+    event EmergencyChanged(bool newState);
 
     ///////////////////// FUNCTIONS /////////////////////
 
@@ -120,6 +123,36 @@ contract FixedStrategy is Ownable {
         emit Withdraw(msg.sender, tokenBalance);
     }
 
+    function emergencyWithdraw() external {
+        require(
+            userToShare[msg.sender] > 0,
+            "[withdraw] Insufficient balance!"
+        );
+        require(emergency, "[withdraw] Not Emergency");
+        uint256 tokenBalance = (userToShare[msg.sender] * pricePerShare()) /
+            1e18;
+        delete userToShare[msg.sender];
+        totalSupply -= tokenBalance;
+
+        delete (initialPPS[msg.sender]);
+        delete (stakeTimestamps[msg.sender]);
+
+        if (tokenBalance > token.balanceOf(address(this)))
+            angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
+
+        if (currentRatioForUser() >= maxYield) {
+            uint256 withdrawAmount = maxEarningToDate(
+                (tokenBalance * initialPPS[msg.sender]) / 1e18
+            );
+            token.safeTransfer(owner(), tokenBalance - withdrawAmount);
+            tokenBalance = withdrawAmount;
+        }
+
+        token.safeTransfer(msg.sender, tokenBalance);
+
+        emit EmergencyWithdraw(msg.sender, tokenBalance);
+    }
+
     ///////////////////// OWNER MANAGEMENTS /////////////////////
 
     function claim() external onlyOwner {
@@ -146,7 +179,6 @@ contract FixedStrategy is Ownable {
         );
 
         for (uint256 i = 0; i < rewardTokens.length; i++) {
-            
             if (IERC20(rewardTokens[i]).balanceOf(address(this)) == 0) continue;
 
             IERC20(rewardTokens[i]).safeIncreaseAllowance(
@@ -195,6 +227,11 @@ contract FixedStrategy is Ownable {
     function setMaxYield(uint256 newYield) external onlyOwner {
         maxYield = newYield;
         emit MaxYieldChanged(newYield);
+    }
+
+    function toggleEmergency() external onlyOwner {
+        emergency = !emergency;
+        emit EmergencyChanged(emergency);
     }
 
     ///////////////////// CONTRACT HELPER FUNCTIONS /////////////////////
