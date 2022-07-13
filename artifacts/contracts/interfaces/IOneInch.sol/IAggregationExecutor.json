@@ -1,25 +1,24 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "IGauge",
-  "sourceName": "contracts/FixedStrategy.sol",
+  "contractName": "IAggregationExecutor",
+  "sourceName": "contracts/interfaces/IOneInch.sol",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "account",
+          "name": "msgSender",
           "type": "address"
-        }
-      ],
-      "name": "balanceOf",
-      "outputs": [
+        },
         {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
         }
       ],
-      "stateMutability": "view",
+      "name": "callBytes",
+      "outputs": [],
+      "stateMutability": "payable",
       "type": "function"
     }
   ],

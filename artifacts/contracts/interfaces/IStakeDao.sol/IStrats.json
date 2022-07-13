@@ -1,24 +1,19 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "IAggregationExecutor",
-  "sourceName": "contracts/FixedStrategy.sol",
+  "contractName": "IStrats",
+  "sourceName": "contracts/interfaces/IStakeDao.sol",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "msgSender",
+          "name": "_token",
           "type": "address"
-        },
-        {
-          "internalType": "bytes",
-          "name": "data",
-          "type": "bytes"
         }
       ],
-      "name": "callBytes",
+      "name": "claim",
       "outputs": [],
-      "stateMutability": "payable",
+      "stateMutability": "nonpayable",
       "type": "function"
     }
   ],

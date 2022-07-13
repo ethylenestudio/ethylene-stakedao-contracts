@@ -4,58 +4,8 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-
-interface IAngle {
-    function deposit(
-        address _staker,
-        uint256 _amount,
-        bool _earn
-    ) external;
-
-    function withdraw(uint256 _shares) external;
-
-    function balanceOf(address account) external view returns (uint256);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-}
-
-interface IStrats {
-    function claim(address _token) external;
-}
-
-interface IGauge {
-    function balanceOf(address account) external view returns (uint256);
-}
-
-interface IAggregationExecutor {
-    /// @notice Make calls on `msgSender` with specified data
-    function callBytes(address msgSender, bytes calldata data) external payable; // 0x2636f7f8
-}
-
-struct SwapDescription {
-    IERC20 srcToken;
-    IERC20 dstToken;
-    address payable srcReceiver;
-    address payable dstReceiver;
-    uint256 amount;
-    uint256 minReturnAmount;
-    uint256 flags;
-    bytes permit;
-}
-
-interface IAggregationRouterV4 {
-    function swap(
-        IAggregationExecutor caller,
-        SwapDescription calldata desc,
-        bytes calldata data
-    )
-        external
-        returns (
-            uint256 returnAmount,
-            uint256 spentAmount,
-            uint256 gasLeft
-        );
-}
+import "./interfaces/IOneInch.sol";
+import "./interfaces/IStakeDao.sol";
 
 contract FixedStrategy is Ownable {
     using SafeERC20 for IERC20;

@@ -1,19 +1,25 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "IStrats",
-  "sourceName": "contracts/FixedStrategy.sol",
+  "contractName": "IGauge",
+  "sourceName": "contracts/interfaces/IStakeDao.sol",
   "abi": [
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "_token",
+          "name": "account",
           "type": "address"
         }
       ],
-      "name": "claim",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     }
   ],

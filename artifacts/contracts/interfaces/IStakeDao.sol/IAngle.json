@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
   "contractName": "IAngle",
-  "sourceName": "contracts/FixedStrategy.sol",
+  "sourceName": "contracts/interfaces/IStakeDao.sol",
   "abi": [
     {
       "inputs": [
