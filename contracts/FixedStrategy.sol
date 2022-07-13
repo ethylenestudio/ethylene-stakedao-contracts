@@ -157,23 +157,27 @@ contract FixedStrategy is Ownable {
             SwapDescription memory desc = SwapDescription({
                 srcToken: IERC20(rewardTokens[i]),
                 dstToken: IERC20(FRAX),
-                srcReceiver: payable(address(oneInchRouter)), //FIXME: I'M NOT SURE
+                srcReceiver: payable(address(executor)), //FIXME: I'M NOT SURE
                 dstReceiver: payable(address(this)),
                 amount: IERC20(rewardTokens[i]).balanceOf(address(this)),
                 minReturnAmount: minReturnAmounts[i],
-                flags: 0, //FIXME: WHAT IS THIS
-                permit: permits[i] //FIXME: WHAT IS THIS
+                flags: 4,
+                permit: permits[i] //0x
             });
             oneInchRouter.swap(IAggregationExecutor(executor), desc, datas[i]); //FIXME: I'M NOT SURE
 
             IERC20(rewardTokens[i]).safeApprove(address(oneInchRouter), 0);
         }
 
+        IERC20(FRAX).safeIncreaseAllowance(
+            address(angleFront),
+            IERC20(FRAX).balanceOf(address(this))
+        );
         angleFront.deposit(
             IERC20(FRAX).balanceOf(address(this)),
             address(this),
             IPoolManager(ANGLE_POOL_MANAGER)
-        ); //FIXME: I'M NOT SURE
+        );
 
         emit Harvested();
     }
