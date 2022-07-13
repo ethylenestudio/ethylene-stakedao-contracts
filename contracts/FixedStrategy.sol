@@ -8,12 +8,17 @@ import "./interfaces/IOneInch.sol";
 import "./interfaces/IStakeDao.sol";
 
 contract FixedStrategy is Ownable {
+    ///////////////////// INTERFACEs & LIBRARIES /////////////////////
+
     using SafeERC20 for IERC20;
+
     IAggregationRouterV4 oneInchRouter;
     IAngle angleVault; // angleVault
     IStrats angleStrat; // angleStrat
     IGauge angleGauge; //angleGauge
     IERC20 token; //sanFRAX_EUR
+
+    ///////////////////// STATE VARIABLES /////////////////////
 
     uint256 public maxYield;
     uint256 public totalSupply;
@@ -22,14 +27,20 @@ contract FixedStrategy is Ownable {
     address public constant ANGL = 0x31429d1856aD1377A8A0079410B297e1a9e214c2;
     address public constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
 
-    mapping(address => uint256) stakeTimestamps;
-    mapping(address => uint256) initialPPS;
-    mapping(address => uint256) userToShare;
+    ///////////////////// TYPES /////////////////////
+
+    mapping(address => uint256) public stakeTimestamps;
+    mapping(address => uint256) public initialPPS;
+    mapping(address => uint256) public userToShare;
+
+    ///////////////////// EVENTS /////////////////////
 
     event Deposit(address locker, uint256 amount);
     event Withdraw(address locker, uint256 amount);
     event Compounded(address compounder, uint256 amount);
     event MaxYieldChanged(uint256 newYield);
+
+    ///////////////////// FUNCTIONS /////////////////////
 
     constructor(
         address angleVaultAddr,
@@ -48,30 +59,7 @@ contract FixedStrategy is Ownable {
         rewardTokens.push(SDT);
     }
 
-    //////////////////////////// VIEW FUNCTIONS ////////////////////////////
-
-    function pricePerShare() public view returns (uint256) {
-        return
-            (totalSupply == 0)
-                ? 1e18
-                : ((angleGauge.balanceOf(address(this)) +
-                    token.balanceOf(address(this))) * 1e18) / totalSupply;
-    }
-
-    function currentRatioForUser() public view returns (uint256) {
-        uint256 ppsChange = ((pricePerShare() - initialPPS[msg.sender]) *
-            1000) / initialPPS[msg.sender];
-        uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
-
-        return ((ppsChange * 365 days) / timePast);
-    }
-
-    function maxEarningToDate(uint256 amount) public view returns (uint256) {
-        uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
-        return (amount * (1000 + ((timePast * maxYield) / 365 days))) / 1000;
-    }
-
-    //////////////////////////// EXTERNAL FUNCTIONS ////////////////////////////
+    ///////////////////// USER INTERACTIONS /////////////////////
 
     /**
      * @param amount uint256 - amount to deposit into stake contract
@@ -124,10 +112,7 @@ contract FixedStrategy is Ownable {
         emit Withdraw(msg.sender, tokenBalance);
     }
 
-    function setMaxYield(uint256 newYield) external onlyOwner {
-        maxYield = newYield;
-        emit MaxYieldChanged(newYield);
-    }
+    ///////////////////// OWNER MANAGEMENTS /////////////////////
 
     function harvest() external onlyOwner {
         angleStrat.claim(address(token));
@@ -145,6 +130,36 @@ contract FixedStrategy is Ownable {
         angleVault.deposit(address(this), tokenBalance, isEarn);
 
         emit Compounded(msg.sender, tokenBalance);
+    }
+
+    ///////////////////// OWNER SETTERS /////////////////////
+
+    function setMaxYield(uint256 newYield) external onlyOwner {
+        maxYield = newYield;
+        emit MaxYieldChanged(newYield);
+    }
+
+    ///////////////////// CONTRACT HELPER FUNCTIONS /////////////////////
+
+    function pricePerShare() public view returns (uint256) {
+        return
+            (totalSupply == 0)
+                ? 1e18
+                : ((angleGauge.balanceOf(address(this)) +
+                    token.balanceOf(address(this))) * 1e18) / totalSupply;
+    }
+
+    function currentRatioForUser() public view returns (uint256) {
+        uint256 ppsChange = ((pricePerShare() - initialPPS[msg.sender]) *
+            1000) / initialPPS[msg.sender];
+        uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
+
+        return ((ppsChange * 365 days) / timePast);
+    }
+
+    function maxEarningToDate(uint256 amount) public view returns (uint256) {
+        uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
+        return (amount * (1000 + ((timePast * maxYield) / 365 days))) / 1000;
     }
 }
 
