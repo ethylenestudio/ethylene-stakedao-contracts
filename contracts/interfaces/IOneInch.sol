@@ -26,6 +26,7 @@ interface IAggregationRouterV4 {
         bytes calldata data
     )
         external
+        payable
         returns (
             uint256 returnAmount,
             uint256 spentAmount,

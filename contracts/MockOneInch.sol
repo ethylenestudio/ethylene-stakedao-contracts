@@ -10,6 +10,7 @@ contract MockOneInch is IAggregationRouterV4 {
         bytes calldata data
     )
         external
+        payable
         virtual
         override
         returns (
