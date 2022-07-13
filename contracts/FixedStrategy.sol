@@ -189,7 +189,7 @@ contract FixedStrategy is Ownable {
         // }
     }
 
-    function comp(bool isEarn) public {
+    function comp(bool isEarn) external onlyOwner {
         uint256 tokenBalance = token.balanceOf(address(this));
         token.safeIncreaseAllowance(address(angleVault), tokenBalance);
         angleVault.deposit(address(this), tokenBalance, isEarn);
