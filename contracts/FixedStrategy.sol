@@ -6,13 +6,15 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IOneInch.sol";
 import "./interfaces/IStakeDao.sol";
+import "./interfaces/IStableMasterFront.sol";
 
 contract FixedStrategy is Ownable {
     ///////////////////// INTERFACEs & LIBRARIES /////////////////////
 
     using SafeERC20 for IERC20;
 
-    IAggregationRouterV4 oneInchRouter;
+    IAggregationRouterV4 oneInchRouter; // 1inch swap router
+    IStableMasterFront angleFront; // Angle Stable Master
     IAngle angleVault; // angleVault
     IStrats angleStrat; // angleStrat
     IGauge angleGauge; //angleGauge
@@ -26,6 +28,8 @@ contract FixedStrategy is Ownable {
     address[] public rewardTokens;
     address public constant ANGL = 0x31429d1856aD1377A8A0079410B297e1a9e214c2;
     address public constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
+    address public constant FRAX = 0x853d955aCEf822Db058eb8505911ED77F175b99e;
+    address public constant ANGLE_POOL_MANAGER = 0x6b4eE7352406707003bC6f6b96595FD35925af48;
 
     ///////////////////// TYPES /////////////////////
 
@@ -39,6 +43,7 @@ contract FixedStrategy is Ownable {
     event Withdraw(address locker, uint256 amount);
     event Compounded(address compounder, uint256 amount);
     event MaxYieldChanged(uint256 newYield);
+    event Harvested();
 
     ///////////////////// FUNCTIONS /////////////////////
 
@@ -46,6 +51,7 @@ contract FixedStrategy is Ownable {
         address angleVaultAddr,
         address angleStratAddr,
         address oneInchAddr,
+        address angleFrontAddr,
         address gaugeAdd,
         address lockToken
     ) {
@@ -53,6 +59,7 @@ contract FixedStrategy is Ownable {
         angleStrat = IStrats(angleStratAddr);
         angleGauge = IGauge(gaugeAdd);
         oneInchRouter = IAggregationRouterV4(oneInchAddr);
+        angleFront = IStableMasterFront(angleFrontAddr);
         token = IERC20(lockToken);
         maxYield = 80;
         rewardTokens.push(ANGL);
@@ -114,14 +121,60 @@ contract FixedStrategy is Ownable {
 
     ///////////////////// OWNER MANAGEMENTS /////////////////////
 
-    function harvest() external onlyOwner {
+    function claim() external onlyOwner {
         angleStrat.claim(address(token));
-        //eğer claim edemiyorsak ve kontratımızda sdt angl var ise onları değiştiremeden yukardaki satır revert eder. tokenlar sıkışır.
-        //implement swapping tokens and receiving LP
+    }
 
-        // for(uint256 i = 0; i < rewardTokens.length; i++) {
-        //     rewardTokens[i]
-        // }
+    function harvest(
+        address executor,
+        uint256[] calldata minReturnAmounts,
+        bytes[] calldata permits,
+        bytes[] calldata datas
+    ) external onlyOwner {
+        require(
+            datas.length == rewardTokens.length,
+            "[harvest] Inappropriate data amount."
+        );
+        require(
+            minReturnAmounts.length == rewardTokens.length,
+            "[harvest] Inappropriate data amount."
+        );
+        require(
+            permits.length == rewardTokens.length,
+            "[harvest] Inappropriate data amount."
+        );
+
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            //TODO: APPROVE
+            if (IERC20(rewardTokens[i]).balanceOf(address(this)) == 0) continue;
+
+            IERC20(rewardTokens[i]).safeIncreaseAllowance(
+                address(oneInchRouter),
+                IERC20(rewardTokens[i]).balanceOf(address(this))
+            );
+
+            SwapDescription memory desc = SwapDescription({
+                srcToken: IERC20(rewardTokens[i]),
+                dstToken: IERC20(FRAX),
+                srcReceiver: payable(address(oneInchRouter)), //FIXME: I'M NOT SURE
+                dstReceiver: payable(address(this)),
+                amount: IERC20(rewardTokens[i]).balanceOf(address(this)),
+                minReturnAmount: minReturnAmounts[i],
+                flags: 0, //FIXME: WHAT IS THIS
+                permit: permits[i] //FIXME: WHAT IS THIS
+            });
+            oneInchRouter.swap(IAggregationExecutor(executor), desc, datas[i]); //FIXME: I'M NOT SURE
+
+            IERC20(rewardTokens[i]).safeApprove(address(oneInchRouter), 0);
+        }
+
+        angleFront.deposit(
+            IERC20(FRAX).balanceOf(address(this)),
+            address(this),
+            IPoolManager(ANGLE_POOL_MANAGER)
+        ); //FIXME: I'M NOT SURE
+
+        emit Harvested();
     }
 
     function comp(bool isEarn) external onlyOwner {
