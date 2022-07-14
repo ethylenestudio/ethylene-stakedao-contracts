@@ -254,18 +254,18 @@ describe("Fixed Strategy Contract", async function () {
 
   it("Alice withdraws some of her funds", async function () {
     const currentPPS = await strategy.pricePerShare();
-    const currentRatio = await strategy.connect(alice).currentRatioForUser();
     const withdrawAlice = await strategy
       .connect(alice)
       .withdraw(ethers.utils.parseEther("10"));
     await withdrawAlice.wait();
     const sanBalanceAlice = await sanfrax_eur.balanceOf(alice.address);
+    const remainingShares = await strategy.userToShare(alice.address);
     console.log(
       `Alice entered to the pool with 25 LP tokens at a rate of 1PPS, Alice withdraws 10LP after 3 months with PPS of ${ethers.utils.formatEther(
         currentPPS
       )}, she now owns ${ethers.utils.formatEther(
         sanBalanceAlice
-      )} LP tokens + 15 shares. Her apr is ${currentRatio / 10}%`
+      )} LP tokens + ${ethers.utils.formatEther(remainingShares)} shares.`
     );
   });
 
@@ -273,18 +273,31 @@ describe("Fixed Strategy Contract", async function () {
 
   it("Bob withdraws all of his funds", async function () {
     const currentPPS = await strategy.pricePerShare();
+    const currentRatio = await strategy.connect(bob).currentRatioForUser();
     const withdrawBob = await strategy
       .connect(bob)
       .withdraw(ethers.utils.parseEther("25"));
     await withdrawBob.wait();
     const sanBalanceBob = await sanfrax_eur.balanceOf(bob.address);
+    const bobShares = await strategy.userToShare(bob.address);
+
     console.log(
       `Bob entered to the pool with 25 LP tokens at a rate of 1PPS, Bob withdraws 25LP after 3 months with PPS of ${ethers.utils.formatEther(
         currentPPS
       )}, he now owns ${ethers.utils.formatEther(
         sanBalanceBob
-      )} LP tokens + 0 shares.`
+      )} LP tokens + ${ethers.utils.formatEther(
+        bobShares
+      )} shares. Yearly APR was ${currentRatio / 10}% at the time`
     );
+  });
+
+  /////////////////////////////////////////
+
+  it("ensure that Bob has 0 shares, total share is reduced by alice & bob", async () => {
+    const totalShares = await strategy.totalSupply();
+
+    expect(ethers.utils.formatEther(totalShares).toString()).to.equal("65.0");
 
     const contractBalance = await strategy.getBalanceInGauge();
     console.log(
@@ -294,7 +307,7 @@ describe("Fixed Strategy Contract", async function () {
     );
     const ownerShare = await sanfrax_eur.balanceOf(owner.address);
     console.log(
-      "owner rewarded with fees +8% which is equal to: ",
+      "owner rewarded with fees more than +8%/yr which is equal to: ",
       ethers.utils.formatEther(ownerShare)
     );
   });
