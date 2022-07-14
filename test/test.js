@@ -185,6 +185,26 @@ describe("Fixed Strategy Contract", async function () {
 
   //////////////////////////////////////////
 
+  it("Owner calls the emergency & Owner withdraws his 50 LP token via emergencyWithdraw", async () => {
+    const emergencyToggle = await strategy.toggleEmergency();
+    await emergencyToggle.wait();
+
+    const emergencyWithdraw = await strategy.emergencyWithdraw();
+    await emergencyWithdraw.wait();
+
+    const emergencyToggle2 = await strategy.toggleEmergency();
+    await emergencyToggle2.wait();
+
+    const shareOfOwner = await strategy.userToShare(owner.address);
+    expect(shareOfOwner.toString()).to.equal("0");
+    const balanceOfOwner = await sanfrax_eur.balanceOf(owner.address);
+    expect(ethers.utils.formatEther(balanceOfOwner).toString()).to.equal(
+      "50.0"
+    );
+  });
+
+  //////////////////////////////////////////
+
   it("Calls the stakeDao harvester to collect Angle rewards", async function () {
     const harvestStake = await strategy.harvestStake();
     await harvestStake.wait();
@@ -300,7 +320,7 @@ describe("Fixed Strategy Contract", async function () {
   it("ensure that Bob has 0 shares, total share is reduced by alice & bob", async () => {
     const totalShares = await strategy.totalSupply();
 
-    expect(ethers.utils.formatEther(totalShares).toString()).to.equal("65.0");
+    expect(ethers.utils.formatEther(totalShares).toString()).to.equal("15.0");
 
     const contractBalance = await strategy.getBalanceInGauge();
     console.log(
@@ -311,7 +331,11 @@ describe("Fixed Strategy Contract", async function () {
     const ownerShare = await sanfrax_eur.balanceOf(owner.address);
     console.log(
       "owner rewarded with fees more than +8%/yr which is equal to: ",
-      ethers.utils.formatEther(ownerShare)
+      (ethers.utils.formatEther(ownerShare) - 50).toString() //owner received 50 during emergencyWithdraw, which is not fee!
+    );
+    const emergencySituation = await strategy.emergency();
+    console.log(
+      `Emergency is ${!emergencySituation ? "closed & safe" : "still open!!!!"}`
     );
   });
 });
