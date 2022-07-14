@@ -98,10 +98,10 @@ contract FixedStrategy is Ownable {
             "[withdraw] Early withdraw!"
         );
         uint256 tokenBalance = (shares * pricePerShare()) / 1e18;
-
         if (tokenBalance > token.balanceOf(address(this)))
             angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
-        if (currentRatioForUser() >= maxYield) {
+
+        if (currentRatioForUser() > maxYield) {
             uint256 withdrawAmount = maxEarningToDate(shares);
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
             tokenBalance = withdrawAmount;
