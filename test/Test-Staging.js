@@ -14,7 +14,7 @@ const SANFRAX_EUR_ADDRESS = "0xb3B209Bb213A5Da5B947C56f2C770b3E1015f1FE";
 // Addresses to be Imprersonated
 const SANFRAX_EUR_HOLDER = "0xA2dEe32662F6243dA539bf6A8613F9A9e39843D3"; // Has 100 token
 
-describe("Fixed Strategy Contract", function () {
+describe("Fixed Strategy Contract", async function () {
   let owner, alice, bob, sanfrax_eur_holder;
   let oneInchContract, oneInch;
   let strategy;
@@ -160,5 +160,18 @@ describe("Fixed Strategy Contract", function () {
   it("Calls the stakeDao harvester to collect", async function () {
     const harvestStake = await strategy.harvestStake();
     await harvestStake.wait();
+  });
+
+  /////////////////////////////////////////
+  it("Alice withdraws some of her funds", async function () {
+    //roll the time 3 months***
+    const currentPPS = await strategy.pricePerShare();
+    const withdrawAlice = await strategy
+      .connect(alice)
+      .withdraw(ethers.utils.parseEther("10"));
+    await withdrawAlice.wait();
+    const sanBalanceAlice = await sanfrax_eur.balanceOf(alice.address);
+    const shareOfAlice = await strategy.userToShare(alice.address);
+    const totalShares = await strategy.totalSupply();
   });
 });
