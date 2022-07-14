@@ -16,8 +16,10 @@ import "hardhat/console.sol";
 /// income by selling reward tokens on 1inch
 /// @dev Implemented Mock OneInch Router for Testing "./MockOneInch.sol"
 /// @dev It's only a demo contract. So, doesn't have any full test-covarage or fully funcionality
+
 contract FixedStrategy is Ownable {
     ///////////////////// INTERFACEs & LIBRARIES /////////////////////
+
     // Using OpenZeppelin's SafeERC20 Util
     using SafeERC20 for IERC20;
 
@@ -35,16 +37,16 @@ contract FixedStrategy is Ownable {
     IERC20 token;
 
     ///////////////////// STATE VARIABLES /////////////////////
+    bool public emergency;
+
     // Max reflected income for stakers
     /// @dev based on 1000 - 10 means 1%
     uint256 public maxYield;
+
     // Total share amount
     uint256 public totalSupply;
-    // Shows the emergency status of the contract
-    bool public emergency;
 
     ///////////////////// CONSTANT VARIABLES /////////////////////
-    // Common used tokens & contracts addresses
     address public constant ANGL = 0x31429d1856aD1377A8A0079410B297e1a9e214c2;
     address public constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
     address public constant FRAX = 0x853d955aCEf822Db058eb8505911ED77F175b99e;
@@ -52,17 +54,22 @@ contract FixedStrategy is Ownable {
         0x6b4eE7352406707003bC6f6b96595FD35925af48;
 
     ///////////////////// TYPES /////////////////////
+
     // Stores users initial staking timestamps
     mapping(address => uint256) public stakeTimestamps;
+
     // Each shares value in initial staking timestamp
     mapping(address => uint256) public initialPPS;
+
     // Users shares, specified due to share values and stake amounts in deposit
     mapping(address => uint256) public userToShare;
+
     // Address of the tokens that the contracts get rewards
     /// @dev initially [ANGL, SDT]
     address[] public rewardTokens;
 
     ///////////////////// EVENTS /////////////////////
+
     // User "locker" deposits "amount" tokens
     event Deposit(address locker, uint256 amount);
     // User "locker" withdraws "amount" tokens
@@ -79,6 +86,7 @@ contract FixedStrategy is Ownable {
     event EmergencyChanged(bool newState);
 
     ///////////////////// FUNCTIONS /////////////////////
+
     /**
      * @notice Constructor function - takes the parameters of used addresses
      * @param oneInchAddr adddress - OneInch Swap Router address
@@ -90,9 +98,9 @@ contract FixedStrategy is Ownable {
      * @dev Mock OneInch Contract can be deployed and specified for tests
      */
     constructor(
-        address oneInchAddr,
         address angleVaultAddr,
         address angleStratAddr,
+        address oneInchAddr,
         address angleFrontAddr,
         address gaugeAddr,
         address lockTokenAddr
@@ -146,12 +154,14 @@ contract FixedStrategy is Ownable {
         require(!emergency, "[withdraw] Emergency!");
         // Block the repetitive stakes
         require(initialPPS[msg.sender] == 0, "[deposit] Already locked!");
+
         // Set the staking moment vars for users
         stakeTimestamps[msg.sender] = block.timestamp;
         initialPPS[msg.sender] = pricePerShare();
 
         // Move users tokens to contract
         token.safeTransferFrom(msg.sender, address(this), amount);
+
         // Calculate users share amounts and share TVL
         userToShare[msg.sender] += (amount * 1e18) / initialPPS[msg.sender];
         totalSupply += userToShare[msg.sender];
@@ -177,14 +187,16 @@ contract FixedStrategy is Ownable {
             stakeTimestamps[msg.sender] + 90 days <= block.timestamp,
             "[withdraw] Early withdraw!"
         );
+
         // Calculate users claimable token amount
         uint256 tokenBalance = (shares * pricePerShare()) / 1e18;
 
         // If the contract doesn't have enough token to return, withdraw from Stake
         if (tokenBalance > token.balanceOf(address(this)))
             angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
+
         // If the balance of user generated more yield from Max, cut fee
-        if (currentRatioForUser() >= maxYield) {
+        if (currentRatioForUser() > maxYield) {
             uint256 withdrawAmount = maxEarningToDate(shares);
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
             tokenBalance = withdrawAmount;
@@ -198,6 +210,7 @@ contract FixedStrategy is Ownable {
             delete (initialPPS[msg.sender]);
             delete (stakeTimestamps[msg.sender]);
         }
+
         // Return users tokens
         token.safeTransfer(msg.sender, tokenBalance);
 
@@ -218,7 +231,6 @@ contract FixedStrategy is Ownable {
         require(emergency, "[withdraw] Not emergency!");
 
         // Then, similar logic with "withdraw()" fn
-
         uint256 tokenBalance = (userToShare[msg.sender] * pricePerShare()) /
             1e18;
 
@@ -226,16 +238,13 @@ contract FixedStrategy is Ownable {
             angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
 
         if (currentRatioForUser() >= maxYield) {
-            uint256 withdrawAmount = maxEarningToDate(
-                tokenBalance * initialPPS[msg.sender] / 1e18
-            );
+            uint256 withdrawAmount = maxEarningToDate(userToShare[msg.sender]);
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
 
             tokenBalance = withdrawAmount;
         }
         delete userToShare[msg.sender];
         totalSupply -= tokenBalance;
-
         delete (initialPPS[msg.sender]);
         delete (stakeTimestamps[msg.sender]);
         token.safeTransfer(msg.sender, tokenBalance);
@@ -244,8 +253,9 @@ contract FixedStrategy is Ownable {
     }
 
     ///////////////////// OWNER MANAGEMENTS /////////////////////
+
     /**
-     * @notice Allows owner to claim contracts rewards from Angle Gauge
+     * @notice Allows owner to claim rewards from stdAngle Gauge
      * @notice Only owner can make this operation
      */
     function claim() external onlyOwner {
@@ -270,15 +280,15 @@ contract FixedStrategy is Ownable {
     ) external onlyOwner {
         // Checking the array lengths
         require(
+            datas.length == rewardTokens.length,
+            "[harvest] Inappropriate data amount."
+        );
+        require(
             minReturnAmounts.length == rewardTokens.length,
             "[harvest] Inappropriate data amount."
         );
         require(
             permits.length == rewardTokens.length,
-            "[harvest] Inappropriate data amount."
-        );
-        require(
-            datas.length == rewardTokens.length,
             "[harvest] Inappropriate data amount."
         );
 
@@ -306,7 +316,7 @@ contract FixedStrategy is Ownable {
             IERC20(rewardTokens[i]).safeApprove(address(oneInchRouter), 0);
         }
 
-        // Deposit obtained FRAX's to Angle
+        // Deposit obtained FRAX's to Angle -> receive SanFrax/EUR
         IERC20(FRAX).safeIncreaseAllowance(
             address(angleFront),
             IERC20(FRAX).balanceOf(address(this))
@@ -321,9 +331,9 @@ contract FixedStrategy is Ownable {
     }
 
     /**
-     * @notice Deposit sanFRAX_EUR tokens to compound rewards
+     * @notice Deposit sanFRAX_EUR tokens to StakeDAO to compound rewards
      * @notice Only owner can make this operation
-     * @param isEarn bool - earn option in StakeDAO contracts
+     * @param isEarn bool - earn option in StakeDAO contracts (it deposits into ANGLE protocol)
      */
     function comp(bool isEarn) external onlyOwner {
         uint256 tokenBalance = token.balanceOf(address(this));
@@ -334,7 +344,7 @@ contract FixedStrategy is Ownable {
     }
 
     /**
-     * @dev FIXME: TEST PURPOSES: REMOVE
+     * @dev TEST PURPOSES: CAN REMOVE -> this claims ANGL rewards from ANGLE to STAKEDAO  (stake.harvest)
      */
     function harvestStake() external onlyOwner {
         angleStrat.claim(address(token));
@@ -348,7 +358,6 @@ contract FixedStrategy is Ownable {
      * @dev The number is between [0, 1000] -> 0 = 0, 1000 = %100
      */
     function setMaxYield(uint256 newYield) external onlyOwner {
-        require(maxYield <= 1000, "[setMaxYield] Inapproprite number.");
         maxYield = newYield;
         emit MaxYieldChanged(newYield);
     }
@@ -379,11 +388,11 @@ contract FixedStrategy is Ownable {
      * @notice Calculates users generated income percent
      */
     function currentRatioForUser() public view returns (uint256) {
-        uint256 ppsChange = (pricePerShare() - initialPPS[msg.sender]) *
-            1000 / initialPPS[msg.sender];
+        uint256 ppsChange = ((pricePerShare() - initialPPS[msg.sender]) *
+            1000) / initialPPS[msg.sender];
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
 
-        return (ppsChange * 365 days / timePast);
+        return ((ppsChange * 365 days) / timePast);
     }
 
     /**
@@ -391,13 +400,13 @@ contract FixedStrategy is Ownable {
      * @param shares uint256 - Share amount
      */
     function maxEarningToDate(uint256 shares) public view returns (uint256) {
-        uint256 amount = shares * initialPPS[msg.sender] / 1e18;
+        uint256 amount = (shares * initialPPS[msg.sender]) / 1e18;
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
         return amount + (((amount * timePast * maxYield) / 365 days) / 1000);
     }
 
     /**
-     * @dev FIXME: TEST PURPOSES: REMOVE
+     * @dev FIXME: TEST PURPOSES: REMOVE -> amount of locked tokens in stake Gauge
      */
     function getBalanceInGauge() public view returns (uint256) {
         return angleGauge.balanceOf(address(this));
