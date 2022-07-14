@@ -9,25 +9,41 @@ import "./interfaces/IStakeDao.sol";
 import "./interfaces/IStableMasterFront.sol";
 import "hardhat/console.sol";
 
+/// @author Ulaş Erdoğan - @ulerdogan from Ethylene Studio - @ethylenestudio
+/// @author Rafi Ersözlü - @rersozlu from Ethylene Studio - @ethylenestudio
+/// @title Strategy Provides Fixed Max 8% APY on sanFRAX_EUR tokens
+/// @dev Contract stakes sanFRAX_EUR tokens to StakeDAO LL and compounds generated
+///income by selling reward tokens on 1inch
+/// @dev Implemented Mock OneInch Router for Testing "./MockOneInch.sol"
 contract FixedStrategy is Ownable {
     ///////////////////// INTERFACEs & LIBRARIES /////////////////////
-
+    // Using OpenZeppelin's SafeERC20 Util
     using SafeERC20 for IERC20;
 
-    IAggregationRouterV4 oneInchRouter; // 1inch swap router
-    IStableMasterFront angleFront; // Angle Stable Master
-    IAngle angleVault; // angleVault
-    IStrats angleStrat; // angleStrat
-    IGauge angleGauge; //angleGauge
-    IERC20 token; //sanFRAX_EUR
+    // OneInch Swap Router address
+    IAggregationRouterV4 oneInchRouter;
+    // Angle Vault address
+    IAngle angleVault;
+    // Angle Strategy address
+    IStrats angleStrat;
+    // Angle's Stable Master Front address
+    IStableMasterFront angleFront;
+    // Angle Gauge address
+    IGauge angleGauge;
+    // Locking token address - sanFRAX_EUR
+    IERC20 token;
 
     ///////////////////// STATE VARIABLES /////////////////////
+    // Max reflected income for stakers
+    /// @dev based on 1000 - 10 means 1%
+    uint256 public maxYield;
+    // Total share amount
+    uint256 public totalSupply;
+    // Shows the emergency status of the contract
     bool public emergency;
 
-    uint256 public maxYield;
-    uint256 public totalSupply;
-
-    address[] public rewardTokens;
+    ///////////////////// CONSTANT VARIABLES /////////////////////
+    // Common used tokens & contracts addresses
     address public constant ANGL = 0x31429d1856aD1377A8A0079410B297e1a9e214c2;
     address public constant SDT = 0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F;
     address public constant FRAX = 0x853d955aCEf822Db058eb8505911ED77F175b99e;
@@ -35,77 +51,135 @@ contract FixedStrategy is Ownable {
         0x6b4eE7352406707003bC6f6b96595FD35925af48;
 
     ///////////////////// TYPES /////////////////////
-
+    // Stores users initial staking timestamps
     mapping(address => uint256) public stakeTimestamps;
+    // Each shares value in initial staking timestamp
     mapping(address => uint256) public initialPPS;
+    // Users shares, specified due to share values and stake amounts in deposit
     mapping(address => uint256) public userToShare;
+    // Address of the tokens that the contracts get rewards
+    /// @dev initially [ANGL, SDT]
+    address[] public rewardTokens;
 
     ///////////////////// EVENTS /////////////////////
-
+    // User "locker" deposits "amount" tokens
     event Deposit(address locker, uint256 amount);
+    // User "locker" withdraws "amount" tokens
     event Withdraw(address locker, uint256 amount);
+    // User "locker" withdraws "amount" tokens in emergency
     event EmergencyWithdraw(address locker, uint256 amount);
+    // Contract tokens compounded
     event Compounded(address compounder, uint256 amount);
-    event MaxYieldChanged(uint256 newYield);
+    // User tokens harvested
     event Harvested();
+    // Contract max yield chang'ed
+    event MaxYieldChanged(uint256 newYield);
+    // Emergency status chang'ed
     event EmergencyChanged(bool newState);
 
     ///////////////////// FUNCTIONS /////////////////////
-
+    /**
+     * @notice Constructor function - takes the parameters of used addresses
+     * @param oneInchAddr adddress - OneInch Swap Router address
+     * @param angleVaultAddr adddress - Angle Vault address
+     * @param angleStratAddr adddress - Angle Strategy address
+     * @param angleFrontAddr adddress - Angle's Stable Master Front address
+     * @param gaugeAddr adddress - Angle Gauge address
+     * @param lockTokenAddr adddress - Locking token address - sanFRAX_EUR
+     * @dev Mock OneInch Contract can be deployed and specified for tests
+     */
     constructor(
+        address oneInchAddr,
         address angleVaultAddr,
         address angleStratAddr,
-        address oneInchAddr,
         address angleFrontAddr,
-        address gaugeAdd,
-        address lockToken
+        address gaugeAddr,
+        address lockTokenAddr
     ) {
+        // Initializes the interfaces
+        oneInchRouter = IAggregationRouterV4(oneInchAddr);
         angleVault = IAngle(angleVaultAddr);
         angleStrat = IStrats(angleStratAddr);
-        angleGauge = IGauge(gaugeAdd);
-        oneInchRouter = IAggregationRouterV4(oneInchAddr);
         angleFront = IStableMasterFront(angleFrontAddr);
-        token = IERC20(lockToken);
+        angleGauge = IGauge(gaugeAddr);
+        token = IERC20(lockTokenAddr);
+        // Sets initial max yield to 8%
         maxYield = 80;
+        // Specifies initial reward tokens: ANGL, SDT
         rewardTokens.push(ANGL);
         rewardTokens.push(SDT);
+    }
+
+    /**
+     * @notice Direct native coin transfers are closed
+     */
+    receive() external payable {
+        revert();
+    }
+
+    /**
+     * @notice Direct native coin transfers are closed
+     */
+    fallback() external payable {
+        revert();
     }
 
     ///////////////////// USER INTERACTIONS /////////////////////
 
     /**
+     * @notice User can deposit sanFRAX_EUR tokens to earn a fixed max yield
+     * @notice The tokens will not be available for 3 months (90 days)
      * @param amount uint256 - amount to deposit into stake contract
+     * @dev sanFRAX_EUR must be approved by user for this contract
      */
     function deposit(uint256 amount) external {
+        // Check if in emergency status
+        require(emergency, "[withdraw] Emergency!");
+        // Block the repetitive stakes
         require(initialPPS[msg.sender] == 0, "[deposit] Already locked!");
+        // Set the staking moment vars for users
         stakeTimestamps[msg.sender] = block.timestamp;
         initialPPS[msg.sender] = pricePerShare();
 
+        // Move users tokens to contract
         token.safeTransferFrom(msg.sender, address(this), amount);
+        // Calculate users share amounts and share TVL
         userToShare[msg.sender] += (amount * 1e18) / initialPPS[msg.sender];
-        totalSupply += (amount * 1e18) / initialPPS[msg.sender];
+        totalSupply += userToShare[msg.sender];
 
         emit Deposit(msg.sender, amount);
     }
 
+    /**
+     * @notice Users can deposit their staked balances after lock period
+     * @notice After the locking period user can withdraw any amount of stakings
+     * @param shares uint256 - amount to withdraw from stake contract
+     */
     function withdraw(uint256 shares) external {
+        // Check if user has enough balance
         require(
             userToShare[msg.sender] >= shares,
             "[withdraw] Insufficient balance!"
         );
+        // Block early withdraws
         require(
             stakeTimestamps[msg.sender] + 90 days <= block.timestamp,
             "[withdraw] Early withdraw!"
         );
+        // Calculate users claimable token amount
         uint256 tokenBalance = (shares * pricePerShare()) / 1e18;
+
+        // If the contract doesn't have enough token to return, withdraw from Stake
         if (tokenBalance > token.balanceOf(address(this)))
             angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
-
-        if (currentRatioForUser() > maxYield) {
+        // If the balance of user generated more yield from Max, cut fee
+        if (currentRatioForUser() >= maxYield) {
             uint256 withdrawAmount = maxEarningToDate(shares);
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
             tokenBalance = withdrawAmount;
         }
+
+        // Re-calculate users share amounts and share TVL
         userToShare[msg.sender] -= shares;
         totalSupply -= shares;
 
@@ -113,17 +187,27 @@ contract FixedStrategy is Ownable {
             delete (initialPPS[msg.sender]);
             delete (stakeTimestamps[msg.sender]);
         }
+        // Return users tokens
         token.safeTransfer(msg.sender, tokenBalance);
 
         emit Withdraw(msg.sender, tokenBalance);
     }
 
+    /**
+     * @notice Allows users to withdraw "all" of their tokens wo waiting locking period
+     * @notice Only active if emergency status is open
+     */
     function emergencyWithdraw() external {
+        // Check if user have a balance
         require(
             userToShare[msg.sender] > 0,
             "[withdraw] Insufficient balance!"
         );
-        require(emergency, "[withdraw] Not Emergency");
+        // Check the emergency status
+        require(emergency, "[withdraw] Not emergency!");
+
+        // Then, similar logic with "withdraw()" fn
+
         uint256 tokenBalance = (userToShare[msg.sender] * pricePerShare()) /
             1e18;
 
@@ -222,12 +306,20 @@ contract FixedStrategy is Ownable {
     }
 
     ///////////////////// OWNER SETTERS /////////////////////
-
+    
+    /**
+     * @notice Allow owner to set max yield
+     * @dev The number is between [0, 1000] -> 0 = 0, 1000 = %100
+     */
     function setMaxYield(uint256 newYield) external onlyOwner {
+        require(maxYield <= 1000, "[setMaxYield] Inapproprite number.");
         maxYield = newYield;
         emit MaxYieldChanged(newYield);
     }
 
+    /**
+     * @notice Allow owner to change emergency status
+     */
     function toggleEmergency() external onlyOwner {
         emergency = !emergency;
         emit EmergencyChanged(emergency);
