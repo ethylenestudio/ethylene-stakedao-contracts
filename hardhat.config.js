@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
-const ALCHEMY_KEY = "https://eth-mainnet.g.alchemy.com/v2/uBFEwiW1y71dOMxFcX7CWoQnV1_oUoRu"
+const ALCHEMY_KEY =
+  "https://eth-mainnet.g.alchemy.com/v2/5_2gUfKiXtK6TsbqX6kNO6AjiEyMVsJX";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -8,5 +9,5 @@ module.exports = {
     forking: {
       url: ALCHEMY_KEY,
     },
-  }
+  },
 };
