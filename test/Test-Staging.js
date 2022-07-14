@@ -128,7 +128,7 @@ describe("Fixed Strategy Contract", function () {
 
   //////////////////////////////////////////
 
-  it("Deposits sanToken to contract on behalf of owner", async function () {
+  it("Deposits sanToken to contract on behalf of Owner", async function () {
     const approveToken = await sanfrax_eur
       .connect(owner)
       .approve(strategy.address, ethers.utils.parseEther("100"));
@@ -157,5 +157,14 @@ describe("Fixed Strategy Contract", function () {
     expect(parseInt(ethers.utils.formatEther(aliceShare))).to.equal(
       parseInt(ethers.utils.parseEther("25") / pricePerShare)
     );
+  });
+
+  //////////////////////////////////////////
+
+  it("Deposits contract tokens to StakeDao contract **Harvesting", async function () {
+    const compound = await strategy.comp(true);
+    await compound.wait();
+    const contractBalance = await sanfrax_eur.balanceOf(strategy.address);
+    expect(parseInt(ethers.utils.formatEther(contractBalance))).to.equal(0);
   });
 });
