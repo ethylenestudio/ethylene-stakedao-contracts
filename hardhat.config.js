@@ -1,13 +1,18 @@
-require("@nomicfoundation/hardhat-toolbox");
+require("@nomiclabs/hardhat-waffle");
+
 const ALCHEMY_KEY =
-  "https://eth-mainnet.g.alchemy.com/v2/5_2gUfKiXtK6TsbqX6kNO6AjiEyMVsJX";
+  "https://eth-mainnet.g.alchemy.com/v2/JZWiNWabjpScd5RigSOZZwGANErZecOW";
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.9",
-  hardhat: {
-    forking: {
-      url: ALCHEMY_KEY,
+  defaultNetwork: "hardhat",
+  networks: {
+    hardhat: {
+      forking: {
+        url: ALCHEMY_KEY,
+        //blockNumber: 15140908,
+      },
     },
   },
 };

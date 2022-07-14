@@ -1,6 +1,6 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
-let provider = ethers.getDefaultProvider("homestead");
+const { ethers, network } = require("hardhat");
+let provider = new ethers.getDefaultProvider("http://localhost:8545/");
 const abi = require("./tokenAbi.json");
 
 // Strategy Constructor Address
@@ -22,8 +22,8 @@ async function increaseDays(value) {
   if (!ethers.BigNumber.isBigNumber(value)) {
     value = ethers.BigNumber.from(value);
   }
-  await provider.send("evm_increaseTime", [value.toNumber()]);
-  await provider.send("evm_mine");
+  await network.provider.send("evm_increaseTime", [value.toNumber()]);
+  await network.provider.send("evm_mine");
 }
 
 // Gives current block timestamp
@@ -45,13 +45,13 @@ function ethToNum(val) {
 describe("Fixed Strategy Contract", function () {
   let owner, alice, bob, sanfrax_eur_holder;
   let oneInchContract, oneInch;
-  let strContract, strategy;
+  let strategy;
   let sanfrax_eur;
 
   before(async function () {
     [owner, alice, bob] = await ethers.getSigners();
 
-    await hre.network.provider.request({
+    await network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [SANFRAX_EUR_HOLDER],
     });
@@ -60,7 +60,7 @@ describe("Fixed Strategy Contract", function () {
     oneInchContract = await ethers.getContractFactory("MockOneInch");
     oneInch = await oneInchContract.deploy();
 
-    strContract = await ethers.getContractFactory("FixedStrategy");
+    const strContract = await ethers.getContractFactory("FixedStrategy");
     strategy = await strContract.deploy(
       ANGLE_VAULT_ADDRESS,
       ANGLE_STRATEGY_ADDRESS,
@@ -69,8 +69,13 @@ describe("Fixed Strategy Contract", function () {
       ANGLE_GAUGE_ADDRESS,
       SANFRAX_EUR_ADDRESS
     );
+    await strategy.deployed();
 
-    sanfrax_eur = new ethers.Contract(SANFRAX_EUR_ADDRESS, abi, provider);
+    sanfrax_eur = new ethers.Contract(
+      SANFRAX_EUR_ADDRESS,
+      abi,
+      sanfrax_eur_holder
+    );
   });
 
   it("Deploys", async function () {
@@ -81,18 +86,21 @@ describe("Fixed Strategy Contract", function () {
 
   it("Sends ether to Impersonate Account & Sends sanfrax to Owner", async function () {
     const tx = {
-      from: owner.address,
       to: sanfrax_eur_holder.address,
-      value: ethers.utils.parseEther("50"),
+      value: ethers.utils.parseEther("5"),
     };
     await owner.sendTransaction(tx);
 
     const balanceImp = await sanfrax_eur.balanceOf(sanfrax_eur_holder.address);
-    console.log(balanceImp);
+    expect(balanceImp).to.equal(ethers.utils.parseEther("100"));
 
-    const transferImp = await sanfrax_eur
-      .connect(sanfrax_eur_holder)
-      .transfer(owner.address, ethers.utils.parseEther("5000"));
+    const transferImp = await sanfrax_eur.transfer(
+      owner.address,
+      ethers.utils.parseEther("100")
+    );
     await transferImp.wait();
+
+    const balanceOwn = await sanfrax_eur.balanceOf(owner.address);
+    expect(balanceOwn).to.equal(ethers.utils.parseEther("100"));
   });
 });

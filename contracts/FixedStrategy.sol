@@ -21,7 +21,7 @@ contract FixedStrategy is Ownable {
     IERC20 token; //sanFRAX_EUR
 
     ///////////////////// STATE VARIABLES /////////////////////
-    bool emergency;
+    bool public emergency;
 
     uint256 public maxYield;
     uint256 public totalSupply;
