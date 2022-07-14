@@ -157,7 +157,7 @@ describe("Fixed Strategy Contract", async function () {
   /*/
 
   //////////////////////////////////////////
-  it("Calls the stakeDao harvester to collect", async function () {
+  it("Calls the stakeDao harvester to collect Angle rewards", async function () {
     const harvestStake = await strategy.harvestStake();
     await harvestStake.wait();
   });
