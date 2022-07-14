@@ -21,7 +21,7 @@ contract FixedStrategy is Ownable {
     IERC20 token; //sanFRAX_EUR
 
     ///////////////////// STATE VARIABLES /////////////////////
-    bool emergency;
+    bool public emergency;
 
     uint256 public maxYield;
     uint256 public totalSupply;
@@ -81,9 +81,8 @@ contract FixedStrategy is Ownable {
         initialPPS[msg.sender] = pricePerShare();
 
         token.safeTransferFrom(msg.sender, address(this), amount);
-
-        userToShare[msg.sender] += (amount * 1e18) / pricePerShare();
-        totalSupply += (amount * 1e18) / pricePerShare();
+        userToShare[msg.sender] += (amount * 1e18) / initialPPS[msg.sender];
+        totalSupply += (amount * 1e18) / initialPPS[msg.sender];
 
         emit Deposit(msg.sender, amount);
     }
@@ -222,6 +221,10 @@ contract FixedStrategy is Ownable {
         emit Compounded(msg.sender, tokenBalance);
     }
 
+    function harvestStake() external onlyOwner {
+        angleStrat.claim(address(token));
+    }
+
     ///////////////////// OWNER SETTERS /////////////////////
 
     function setMaxYield(uint256 newYield) external onlyOwner {
@@ -255,6 +258,10 @@ contract FixedStrategy is Ownable {
     function maxEarningToDate(uint256 amount) public view returns (uint256) {
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
         return (amount * (1000 + ((timePast * maxYield) / 365 days))) / 1000;
+    }
+
+    function getBalanceInGauge() public view returns (uint256) {
+        return angleGauge.balanceOf(address(this));
     }
 }
 
