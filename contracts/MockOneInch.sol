@@ -4,6 +4,12 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IOneInch.sol";
 
+/// @author Ulaş Erdoğan - @ulerdogan from Ethylene Studio - @ethylenestudio
+/// @author Rafi Ersözlü - @rersozlu from Ethylene Studio - @ethylenestudio
+/// @title Mock Contract for OneInch Swap Router
+/// @dev Can be implemented with the same parameters with original contract
+/// @dev Returns fixed amounts for specified swaps
+/// @dev Must be funded with output tokens before swaps
 contract MockOneInch is IAggregationRouterV4 {
     using SafeERC20 for IERC20;
 

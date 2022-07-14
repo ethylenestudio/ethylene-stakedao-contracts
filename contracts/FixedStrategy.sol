@@ -16,7 +16,6 @@ import "hardhat/console.sol";
 /// income by selling reward tokens on 1inch
 /// @dev Implemented Mock OneInch Router for Testing "./MockOneInch.sol"
 /// @dev It's only a demo contract. So, doesn't have any full test-covarage or fully funcionality
-/// @dev // TODO: REENTRANCY CHECK
 contract FixedStrategy is Ownable {
     ///////////////////// INTERFACEs & LIBRARIES /////////////////////
     // Using OpenZeppelin's SafeERC20 Util

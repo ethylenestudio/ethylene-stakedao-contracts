@@ -1,7 +1,8 @@
 const { expect } = require("chai");
 const { ethers, network } = require("hardhat");
 let provider = new ethers.getDefaultProvider("http://localhost:8545/");
-const abi = require("./tokenAbi.json");
+const abi = require("../artifacts/@openzeppelin/contracts/token/ERC20/IERC20.sol/IERC20.json");
+
 
 // Strategy Constructor Address
 const ANGLE_VAULT_ADDRESS = "0x1BD865ba36A510514d389B2eA763bad5d96b6ff9";
@@ -54,11 +55,11 @@ describe("Fixed Strategy Contract", async function () {
 
     sanfrax_eur = new ethers.Contract(
       SANFRAX_EUR_ADDRESS,
-      abi,
+      abi.abi,
       sanfrax_eur_holder
     );
 
-    frax = new ethers.Contract(FRAX_ADDRESS, abi, frax_holder);
+    frax = new ethers.Contract(FRAX_ADDRESS, abi.abi, frax_holder);
   });
 
   //////////////////////////////////////////
@@ -194,12 +195,12 @@ describe("Fixed Strategy Contract", async function () {
   it("Claims rewards from StakeDao gauge - claims angl & sdt to contract", async function () {
     const angl = new ethers.Contract(
       "0x31429d1856aD1377A8A0079410B297e1a9e214c2",
-      abi,
+      abi.abi,
       owner
     );
     const sdt = new ethers.Contract(
       "0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F",
-      abi,
+      abi.abi,
       owner
     );
     const claimTxn = await strategy.claim();
