@@ -80,9 +80,8 @@ contract FixedStrategy is Ownable {
         stakeTimestamps[msg.sender] = block.timestamp;
         initialPPS[msg.sender] = pricePerShare();
 
-        token.safeTransferFrom(msg.sender, address(this), amount);
-
         userToShare[msg.sender] += (amount * 1e18) / pricePerShare();
+        token.safeTransferFrom(msg.sender, address(this), amount);
         totalSupply += (amount * 1e18) / pricePerShare();
 
         emit Deposit(msg.sender, amount);
