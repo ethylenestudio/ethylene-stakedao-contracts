@@ -25,13 +25,13 @@ contract FixedStrategy is Ownable {
 
     // OneInch Swap Router address
     IAggregationRouterV4 oneInchRouter;
-    // Angle Vault address
+    // stdAngle Vault address
     IAngle angleVault;
-    // Angle Strategy address
+    // stdAngle Strategy address
     IStrats angleStrat;
     // Angle's Stable Master Front address
     IStableMasterFront angleFront;
-    // Angle Gauge address
+    // stdAngle Gauge address
     IGauge angleGauge;
     // Locking token address - sanFRAX_EUR
     IERC20 token;
@@ -90,10 +90,10 @@ contract FixedStrategy is Ownable {
     /**
      * @notice Constructor function - takes the parameters of used addresses
      * @param oneInchAddr adddress - OneInch Swap Router address
-     * @param angleVaultAddr adddress - Angle Vault address
-     * @param angleStratAddr adddress - Angle Strategy address
+     * @param angleVaultAddr adddress - stakeDAO Angle Vault address
+     * @param angleStratAddr adddress - stakeDAO Angle Strategy address
      * @param angleFrontAddr adddress - Angle's Stable Master Front address
-     * @param gaugeAddr adddress - Angle Gauge address
+     * @param gaugeAddr adddress - stakeDAO Angle Gauge address
      * @param lockTokenAddr adddress - Locking token address - sanFRAX_EUR
      * @dev Mock OneInch Contract can be deployed and specified for tests
      */
