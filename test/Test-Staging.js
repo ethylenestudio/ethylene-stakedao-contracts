@@ -94,6 +94,5 @@ describe("Fixed Strategy Contract", function () {
       .connect(sanfrax_eur_holder)
       .transfer(owner.address, ethers.utils.parseEther("5000"));
     await transferImp.wait();
-
   });
 });
