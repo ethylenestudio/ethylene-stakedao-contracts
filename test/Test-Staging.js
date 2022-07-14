@@ -78,13 +78,17 @@ describe("Fixed Strategy Contract", function () {
     );
   });
 
+  //////////////////////////////////////////
+
   it("Deploys", async function () {
     expect(oneInch.address).to.be.properAddress;
     expect(strategy.address).to.be.properAddress;
     expect(sanfrax_eur.address).to.be.properAddress;
   });
 
-  it("Sends ether to Impersonate Account & Sends sanfrax to Owner", async function () {
+  //////////////////////////////////////////
+
+  it("Sends ether to Impersonate Account & Sends sanfrax to Owner, Alice, Bob", async function () {
     const tx = {
       to: sanfrax_eur_holder.address,
       value: ethers.utils.parseEther("5"),
@@ -96,11 +100,43 @@ describe("Fixed Strategy Contract", function () {
 
     const transferImp = await sanfrax_eur.transfer(
       owner.address,
-      ethers.utils.parseEther("100")
+      ethers.utils.parseEther("50")
     );
     await transferImp.wait();
 
+    const transferImp2 = await sanfrax_eur.transfer(
+      alice.address,
+      ethers.utils.parseEther("25")
+    );
+    await transferImp2.wait();
+
+    const transferImp3 = await sanfrax_eur.transfer(
+      bob.address,
+      ethers.utils.parseEther("25")
+    );
+    await transferImp3.wait();
+
     const balanceOwn = await sanfrax_eur.balanceOf(owner.address);
-    expect(balanceOwn).to.equal(ethers.utils.parseEther("100"));
+    expect(balanceOwn).to.equal(ethers.utils.parseEther("50"));
+
+    const balanceAlice = await sanfrax_eur.balanceOf(alice.address);
+    expect(balanceAlice).to.equal(ethers.utils.parseEther("25"));
+
+    const balanceBob = await sanfrax_eur.balanceOf(bob.address);
+    expect(balanceBob).to.equal(ethers.utils.parseEther("25"));
+  });
+
+  //////////////////////////////////////////
+
+  it("Deposits sanToken to contract on behalf of owner", async function () {
+    const approveToken = await sanfrax_eur
+      .connect(owner)
+      .approve(strategy.address, ethers.utils.parseEther("100"));
+    await approveToken.wait();
+    const depositFunc = await strategy.deposit(ethers.utils.parseEther("50"));
+    await depositFunc.wait();
+
+    const ownerShare = await strategy.userToShare(owner.address);
+    expect(ownerShare).to.equal(ethers.utils.parseEther("50"));
   });
 });
