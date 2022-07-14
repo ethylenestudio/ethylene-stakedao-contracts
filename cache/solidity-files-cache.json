@@ -1,9 +1,9 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\contracts\\FixedStrategy.sol": {
-      "lastModificationDate": 1657750121880,
-      "contentHash": "d654b26083e178ce0e10d2a31d2a65e2",
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/contracts/FixedStrategy.sol": {
+      "lastModificationDate": 1657783768408,
+      "contentHash": "e29232d27378701dd095aef8b79cac09",
       "sourceName": "contracts/FixedStrategy.sol",
       "solcConfig": {
         "version": "0.8.9",
@@ -43,8 +43,8 @@
         "FixedStrategy"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\ERC20.sol": {
-      "lastModificationDate": 1657636633851,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+      "lastModificationDate": 1657635574500,
       "contentHash": "af7bd64e1cfefbf6cb07f2adc1a25392",
       "sourceName": "@openzeppelin/contracts/token/ERC20/ERC20.sol",
       "solcConfig": {
@@ -82,8 +82,8 @@
         "ERC20"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\utils\\SafeERC20.sol": {
-      "lastModificationDate": 1657636634417,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": {
+      "lastModificationDate": 1657635574896,
       "contentHash": "3a843b05b85a270e9455e3d2e804e633",
       "sourceName": "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol",
       "solcConfig": {
@@ -121,8 +121,8 @@
         "SafeERC20"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
-      "lastModificationDate": 1657636634381,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/access/Ownable.sol": {
+      "lastModificationDate": 1657635574513,
       "contentHash": "e436cea06129be2c73cda4b1acc848b5",
       "sourceName": "@openzeppelin/contracts/access/Ownable.sol",
       "solcConfig": {
@@ -158,9 +158,9 @@
         "Ownable"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\contracts\\interfaces\\IOneInch.sol": {
-      "lastModificationDate": 1657730029662,
-      "contentHash": "e2b3ba6cc1cee5e205e9c2a16c9b862e",
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/contracts/interfaces/IOneInch.sol": {
+      "lastModificationDate": 1657736594509,
+      "contentHash": "595b7d24e519cfb4385e38a644ad5bed",
       "sourceName": "contracts/interfaces/IOneInch.sol",
       "solcConfig": {
         "version": "0.8.9",
@@ -196,9 +196,9 @@
         "IAggregationRouterV4"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\contracts\\interfaces\\IStakeDao.sol": {
-      "lastModificationDate": 1657749041930,
-      "contentHash": "a44b79ea25c3f47fe0e65bbb30711da7",
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/contracts/interfaces/IStakeDao.sol": {
+      "lastModificationDate": 1657749251302,
+      "contentHash": "969bac8756e9b6c3bdccb3a80cffba86",
       "sourceName": "contracts/interfaces/IStakeDao.sol",
       "solcConfig": {
         "version": "0.8.9",
@@ -233,9 +233,9 @@
         "IStrats"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\contracts\\interfaces\\IStableMasterFront.sol": {
-      "lastModificationDate": 1657737381277,
-      "contentHash": "22ac693c83d561f1784f5c9e97c95b63",
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/contracts/interfaces/IStableMasterFront.sol": {
+      "lastModificationDate": 1657735525404,
+      "contentHash": "2cc72c7bf71042c04723e08db4111287",
       "sourceName": "contracts/interfaces/IStableMasterFront.sol",
       "solcConfig": {
         "version": "0.8.9",
@@ -269,8 +269,8 @@
         "IStableMasterFront"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\IERC20.sol": {
-      "lastModificationDate": 1657636634239,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+      "lastModificationDate": 1657635574509,
       "contentHash": "ad7c2d0af148c8f9f097d65deeb4da6b",
       "sourceName": "@openzeppelin/contracts/token/ERC20/IERC20.sol",
       "solcConfig": {
@@ -304,8 +304,8 @@
         "IERC20"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\IERC20Metadata.sol": {
-      "lastModificationDate": 1657636634244,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol": {
+      "lastModificationDate": 1657635574509,
       "contentHash": "909ab67fc5c25033fe6cd364f8c056f9",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol",
       "solcConfig": {
@@ -341,8 +341,8 @@
         "IERC20Metadata"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
-      "lastModificationDate": 1657636633557,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/utils/Context.sol": {
+      "lastModificationDate": 1657635574493,
       "contentHash": "5f2c5c4b6af2dd4551027144797bc8be",
       "sourceName": "@openzeppelin/contracts/utils/Context.sol",
       "solcConfig": {
@@ -376,8 +376,8 @@
         "Context"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\token\\ERC20\\extensions\\draft-IERC20Permit.sol": {
-      "lastModificationDate": 1657636633736,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol": {
+      "lastModificationDate": 1657635574496,
       "contentHash": "fb77f144244b9ab12533aa6ce85ef8c5",
       "sourceName": "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol",
       "solcConfig": {
@@ -411,8 +411,8 @@
         "IERC20Permit"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\node_modules\\@openzeppelin\\contracts\\utils\\Address.sol": {
-      "lastModificationDate": 1657636633482,
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/node_modules/@openzeppelin/contracts/utils/Address.sol": {
+      "lastModificationDate": 1657635574492,
       "contentHash": "c476b3895a94798b88a4bb97399e6dfe",
       "sourceName": "@openzeppelin/contracts/utils/Address.sol",
       "solcConfig": {
@@ -446,9 +446,9 @@
         "Address"
       ]
     },
-    "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\contracts\\MockOneInch.sol": {
-      "lastModificationDate": 1657730029658,
-      "contentHash": "e38f8c339e4a6426e66f28a289a386a6",
+    "/Users/ulerdogan/Code/ethylene/fixedapy-str-sd/contracts/MockOneInch.sol": {
+      "lastModificationDate": 1657726598307,
+      "contentHash": "c264789e45aadc16b67dce4804a1feb0",
       "sourceName": "contracts/MockOneInch.sol",
       "solcConfig": {
         "version": "0.8.9",
