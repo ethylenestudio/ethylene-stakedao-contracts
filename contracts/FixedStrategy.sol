@@ -15,7 +15,7 @@ import "hardhat/console.sol";
 /// @dev Contract stakes sanFRAX_EUR tokens to StakeDAO LL and compounds generated
 /// income by selling reward tokens on 1inch
 /// @dev Implemented Mock OneInch Router for Testing "./MockOneInch.sol"
-/// @dev It's only a demo contract. So, doesn't have any full test-covarage or fully funcionality
+/// @dev NOT AUDITED nor TESTED IN FULL COVERAGE
 
 contract FixedStrategy is Ownable {
     ///////////////////// INTERFACEs & LIBRARIES /////////////////////
