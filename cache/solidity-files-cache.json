@@ -483,8 +483,8 @@
       ]
     },
     "C:\\Users\\Rafi\\Desktop\\projects\\fixedapy-str-sd\\contracts\\MockOneInch.sol": {
-      "lastModificationDate": 1657824765195,
-      "contentHash": "b71f16e50ff319a6bc348378f1e2efd3",
+      "lastModificationDate": 1657840110117,
+      "contentHash": "85fbd3fb04798d702d215cb55949834f",
       "sourceName": "contracts/MockOneInch.sol",
       "solcConfig": {
         "version": "0.8.9",
