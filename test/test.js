@@ -179,7 +179,7 @@ describe("Fixed Strategy Contract", async function () {
       )
     ).to.equal(parseInt(ethers.utils.formatEther(prevContractBalance)));
 
-    await network.provider.send("evm_setNextBlockTimestamp", [1668427942]);
+    await network.provider.send("evm_setNextBlockTimestamp", [1665758956]);
     await network.provider.send("evm_mine");
   });
 
@@ -247,6 +247,9 @@ describe("Fixed Strategy Contract", async function () {
     console.log(
       "new PPS with the harvest & restake ",
       ethers.utils.formatEther(newPPS)
+    );
+    console.log(
+      "this ensures that staking to stakeDAO or holding in the contract does not affect PPS or withdraw functions on users perspective"
     );
   });
 
