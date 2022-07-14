@@ -148,6 +148,9 @@ describe("Fixed Strategy Contract", async function () {
           ethers.utils.formatEther(prevGaugeBalance)
       )
     ).to.equal(parseInt(ethers.utils.formatEther(prevContractBalance)));
+
+    await network.provider.send("evm_setNextBlockTimestamp", [1668427942]);
+    await network.provider.send("evm_mine");
   });
 
   //////////////////////////////////////////
@@ -175,11 +178,13 @@ describe("Fixed Strategy Contract", async function () {
     const anglBal = await angl.balanceOf(strategy.address);
     console.log(
       "sdtBalance is",
-      sdtBal.toString(),
+      ethers.utils.formatEther(sdtBal).toString(),
       "anglBalance is",
-      anglBal.toString()
+      ethers.utils.formatEther(anglBal).toString()
     );
   });
+
+  /////////////////////////////////////////
 
   /////////////////////////////////////////
   //* swap sdt & angl from 1inch
