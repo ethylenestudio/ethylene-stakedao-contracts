@@ -152,17 +152,40 @@ describe("Fixed Strategy Contract", async function () {
 
   //////////////////////////////////////////
 
-  /*/
-    *Buraya Angle'ın ödül basma fonksiyonu gelecek!
-  /*/
-
-  //////////////////////////////////////////
   it("Calls the stakeDao harvester to collect Angle rewards", async function () {
     const harvestStake = await strategy.harvestStake();
     await harvestStake.wait();
   });
 
   /////////////////////////////////////////
+  it("Claims rewards from StakeDao gauge - claims angl & sdt to contract", async function () {
+    const angl = new ethers.Contract(
+      "0x31429d1856aD1377A8A0079410B297e1a9e214c2",
+      abi,
+      owner
+    );
+    const sdt = new ethers.Contract(
+      "0x73968b9a57c6E53d41345FD57a6E6ae27d6CDB2F",
+      abi,
+      owner
+    );
+    const claimTxn = await strategy.claim();
+    await claimTxn.wait();
+    const sdtBal = await sdt.balanceOf(strategy.address);
+    const anglBal = await angl.balanceOf(strategy.address);
+    console.log(
+      "sdtBalance is",
+      sdtBal.toString(),
+      "anglBalance is",
+      anglBal.toString()
+    );
+  });
+
+  /////////////////////////////////////////
+  //* swap sdt & angl from 1inch
+  //* calc pps again
+  /////////////////////////////////////////
+
   it("Alice withdraws some of her funds", async function () {
     //roll the time 3 months***
     const currentPPS = await strategy.pricePerShare();
