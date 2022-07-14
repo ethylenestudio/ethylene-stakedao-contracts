@@ -14,34 +14,6 @@ const SANFRAX_EUR_ADDRESS = "0xb3B209Bb213A5Da5B947C56f2C770b3E1015f1FE";
 // Addresses to be Imprersonated
 const SANFRAX_EUR_HOLDER = "0xA2dEe32662F6243dA539bf6A8613F9A9e39843D3"; // Has 100 token
 
-// Helper fns
-
-// Increases block timestamp -> "value" days
-async function increaseDays(value) {
-  value = value * 3600 * 24;
-  if (!ethers.BigNumber.isBigNumber(value)) {
-    value = ethers.BigNumber.from(value);
-  }
-  await network.provider.send("evm_increaseTime", [value.toNumber()]);
-  await network.provider.send("evm_mine");
-}
-
-// Gives current block timestamp
-async function getBlockTiemstamp() {
-  let block_number, block, block_timestamp;
-
-  block_number = await provider.getBlockNumber();
-  block = await provider.getBlock(block_number);
-  block_timestamp = block.timestamp;
-
-  return block_timestamp;
-}
-
-// Converts any BN ether values to regular counts
-function ethToNum(val) {
-  return Number(ethers.utils.formatEther(val));
-}
-
 describe("Fixed Strategy Contract", function () {
   let owner, alice, bob, sanfrax_eur_holder;
   let oneInchContract, oneInch;
@@ -80,7 +52,7 @@ describe("Fixed Strategy Contract", function () {
 
   //////////////////////////////////////////
 
-  it("Deploys", async function () {
+  it("Deploys the contract and checks address values", async function () {
     expect(oneInch.address).to.be.properAddress;
     expect(strategy.address).to.be.properAddress;
     expect(sanfrax_eur.address).to.be.properAddress;
@@ -161,10 +133,32 @@ describe("Fixed Strategy Contract", function () {
 
   //////////////////////////////////////////
 
-  it("Deposits contract tokens to StakeDao contract **Harvesting", async function () {
+  it("Deposits contract tokens to StakeDao contract **comp", async function () {
+    const prevContractBalance = await sanfrax_eur.balanceOf(strategy.address);
+    const prevGaugeBalance = await strategy.getBalanceInGauge();
     const compound = await strategy.comp(true);
     await compound.wait();
     const contractBalance = await sanfrax_eur.balanceOf(strategy.address);
     expect(parseInt(ethers.utils.formatEther(contractBalance))).to.equal(0);
+
+    const gaugeBalance = await strategy.getBalanceInGauge();
+    expect(
+      parseInt(
+        ethers.utils.formatEther(gaugeBalance) -
+          ethers.utils.formatEther(prevGaugeBalance)
+      )
+    ).to.equal(parseInt(ethers.utils.formatEther(prevContractBalance)));
+  });
+
+  //////////////////////////////////////////
+
+  /*/
+    *Buraya Angle'ın ödül basma fonksiyonu gelecek!
+  /*/
+
+  //////////////////////////////////////////
+  it("Calls the stakeDao harvester to collect", async function () {
+    const harvestStake = await strategy.harvestStake();
+    await harvestStake.wait();
   });
 });

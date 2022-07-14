@@ -221,6 +221,10 @@ contract FixedStrategy is Ownable {
         emit Compounded(msg.sender, tokenBalance);
     }
 
+    function harvestStake() external onlyOwner {
+        angleStrat.claim(address(token));
+    }
+
     ///////////////////// OWNER SETTERS /////////////////////
 
     function setMaxYield(uint256 newYield) external onlyOwner {
@@ -254,6 +258,10 @@ contract FixedStrategy is Ownable {
     function maxEarningToDate(uint256 amount) public view returns (uint256) {
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
         return (amount * (1000 + ((timePast * maxYield) / 365 days))) / 1000;
+    }
+
+    function getBalanceInGauge() public view returns (uint256) {
+        return angleGauge.balanceOf(address(this));
     }
 }
 
