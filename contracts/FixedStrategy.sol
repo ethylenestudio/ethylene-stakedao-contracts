@@ -13,8 +13,10 @@ import "hardhat/console.sol";
 /// @author Rafi Ersözlü - @rersozlu from Ethylene Studio - @ethylenestudio
 /// @title Strategy Provides Fixed Max 8% APY on sanFRAX_EUR tokens
 /// @dev Contract stakes sanFRAX_EUR tokens to StakeDAO LL and compounds generated
-///income by selling reward tokens on 1inch
+/// income by selling reward tokens on 1inch
 /// @dev Implemented Mock OneInch Router for Testing "./MockOneInch.sol"
+/// @dev It's only a demo contract. So, doesn't have any full test-covarage or fully funcionality
+/// @dev // TODO: REENTRANCY CHECK
 contract FixedStrategy is Ownable {
     ///////////////////// INTERFACEs & LIBRARIES /////////////////////
     // Using OpenZeppelin's SafeERC20 Util
@@ -124,6 +126,14 @@ contract FixedStrategy is Ownable {
         revert();
     }
 
+    ///////////////////// OWNER VIEWERS /////////////////////
+    /**
+     * @notice Amount of the tokens that the contracts get rewards
+     */
+    function rewardTokensLength() external view returns (uint256) {
+        return rewardTokens.length;
+    }
+
     ///////////////////// USER INTERACTIONS /////////////////////
 
     /**
@@ -133,8 +143,8 @@ contract FixedStrategy is Ownable {
      * @dev sanFRAX_EUR must be approved by user for this contract
      */
     function deposit(uint256 amount) external {
-        // Check if in emergency status
-        require(emergency, "[withdraw] Emergency!");
+        // Check if not in emergency status
+        require(!emergency, "[withdraw] Emergency!");
         // Block the repetitive stakes
         require(initialPPS[msg.sender] == 0, "[deposit] Already locked!");
         // Set the staking moment vars for users
@@ -156,6 +166,8 @@ contract FixedStrategy is Ownable {
      * @param shares uint256 - amount to withdraw from stake contract
      */
     function withdraw(uint256 shares) external {
+        // Check if not in emergency status
+        require(!emergency, "[withdraw] Emergency!");
         // Check if user has enough balance
         require(
             userToShare[msg.sender] >= shares,
@@ -216,7 +228,7 @@ contract FixedStrategy is Ownable {
 
         if (currentRatioForUser() >= maxYield) {
             uint256 withdrawAmount = maxEarningToDate(
-                (tokenBalance * initialPPS[msg.sender]) / 1e18
+                tokenBalance * initialPPS[msg.sender] / 1e18
             );
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
 
@@ -233,21 +245,31 @@ contract FixedStrategy is Ownable {
     }
 
     ///////////////////// OWNER MANAGEMENTS /////////////////////
-
+    /**
+     * @notice Allows owner to claim contracts rewards from Angle Gauge
+     * @notice Only owner can make this operation
+     */
     function claim() external onlyOwner {
         angleGauge.claim_rewards();
     }
 
+    /**
+     * @notice Harvests contract tokens (ANGL - SDT expected) by selling them on 
+       OneInch to FRAX and stakes FRAX to Angle
+     * @notice Only owner can make this operation
+     * @param executor address - OneInch Swap Executor
+     * @param minReturnAmounts uint256[] - Minimum incomes for each swap in OneInch
+     * @param permits bytes[] - permits array for each swap in OneInch
+     * @param datas bytes[] - datas array for each swap in OneInch
+     * @dev Param arrays must be in length of rewards count - can be obtained by "rewardTokensLength()"
+     */
     function harvest(
         address executor,
         uint256[] calldata minReturnAmounts,
         bytes[] calldata permits,
         bytes[] calldata datas
     ) external onlyOwner {
-        require(
-            datas.length == rewardTokens.length,
-            "[harvest] Inappropriate data amount."
-        );
+        // Checking the array lengths
         require(
             minReturnAmounts.length == rewardTokens.length,
             "[harvest] Inappropriate data amount."
@@ -256,7 +278,12 @@ contract FixedStrategy is Ownable {
             permits.length == rewardTokens.length,
             "[harvest] Inappropriate data amount."
         );
+        require(
+            datas.length == rewardTokens.length,
+            "[harvest] Inappropriate data amount."
+        );
 
+        // Do each token swap in OneInch and get FRAX tokens
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             if (IERC20(rewardTokens[i]).balanceOf(address(this)) == 0) continue;
 
@@ -280,6 +307,7 @@ contract FixedStrategy is Ownable {
             IERC20(rewardTokens[i]).safeApprove(address(oneInchRouter), 0);
         }
 
+        // Deposit obtained FRAX's to Angle
         IERC20(FRAX).safeIncreaseAllowance(
             address(angleFront),
             IERC20(FRAX).balanceOf(address(this))
@@ -293,6 +321,11 @@ contract FixedStrategy is Ownable {
         emit Harvested();
     }
 
+    /**
+     * @notice Deposit sanFRAX_EUR tokens to compound rewards
+     * @notice Only owner can make this operation
+     * @param isEarn bool - earn option in StakeDAO contracts
+     */
     function comp(bool isEarn) external onlyOwner {
         uint256 tokenBalance = token.balanceOf(address(this));
         token.safeIncreaseAllowance(address(angleVault), tokenBalance);
@@ -301,14 +334,18 @@ contract FixedStrategy is Ownable {
         emit Compounded(msg.sender, tokenBalance);
     }
 
+    /**
+     * @dev FIXME: TEST PURPOSES: REMOVE
+     */
     function harvestStake() external onlyOwner {
         angleStrat.claim(address(token));
     }
 
     ///////////////////// OWNER SETTERS /////////////////////
-    
+
     /**
      * @notice Allow owner to set max yield
+     * @notice Only owner can make this operation
      * @dev The number is between [0, 1000] -> 0 = 0, 1000 = %100
      */
     function setMaxYield(uint256 newYield) external onlyOwner {
@@ -319,6 +356,7 @@ contract FixedStrategy is Ownable {
 
     /**
      * @notice Allow owner to change emergency status
+     * @notice Only owner can make this operation
      */
     function toggleEmergency() external onlyOwner {
         emergency = !emergency;
@@ -327,6 +365,9 @@ contract FixedStrategy is Ownable {
 
     ///////////////////// CONTRACT HELPER FUNCTIONS /////////////////////
 
+    /**
+     * @notice Value of each share token
+     */
     function pricePerShare() public view returns (uint256) {
         return
             (totalSupply == 0)
@@ -335,24 +376,31 @@ contract FixedStrategy is Ownable {
                     token.balanceOf(address(this))) * 1e18) / totalSupply;
     }
 
+    /**
+     * @notice Calculates users generated income percent
+     */
     function currentRatioForUser() public view returns (uint256) {
-        uint256 ppsChange = ((pricePerShare() - initialPPS[msg.sender]) *
-            1000) / initialPPS[msg.sender];
+        uint256 ppsChange = (pricePerShare() - initialPPS[msg.sender]) *
+            1000 / initialPPS[msg.sender];
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
 
-        return ((ppsChange * 365 days) / timePast);
+        return (ppsChange * 365 days / timePast);
     }
 
+    /**
+     * @notice Calculates users max earnings due to limit
+     * @param shares uint256 - Share amount
+     */
     function maxEarningToDate(uint256 shares) public view returns (uint256) {
-        uint256 amount = (shares * initialPPS[msg.sender]) / 1e18;
+        uint256 amount = shares * initialPPS[msg.sender] / 1e18;
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
         return amount + (((amount * timePast * maxYield) / 365 days) / 1000);
     }
 
+    /**
+     * @dev FIXME: TEST PURPOSES: REMOVE
+     */
     function getBalanceInGauge() public view returns (uint256) {
         return angleGauge.balanceOf(address(this));
     }
 }
-
-// TODO: REENTRANCY CHECK
-// TODO: CONFIGURE IN STYLE GUIDE
