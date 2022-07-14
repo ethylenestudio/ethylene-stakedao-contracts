@@ -139,4 +139,23 @@ describe("Fixed Strategy Contract", function () {
     const ownerShare = await strategy.userToShare(owner.address);
     expect(ownerShare).to.equal(ethers.utils.parseEther("50"));
   });
+
+  //////////////////////////////////////////
+
+  it("Deposits sanToken to contract on behalf of Alice", async function () {
+    const approveToken = await sanfrax_eur
+      .connect(alice)
+      .approve(strategy.address, ethers.utils.parseEther("100"));
+    await approveToken.wait();
+
+    const pricePerShare = await strategy.pricePerShare();
+    const depositFunc = await strategy
+      .connect(alice)
+      .deposit(ethers.utils.parseEther("25"));
+    await depositFunc.wait();
+    const aliceShare = await strategy.userToShare(alice.address);
+    expect(parseInt(ethers.utils.formatEther(aliceShare))).to.equal(
+      parseInt(ethers.utils.parseEther("25") / pricePerShare)
+    );
+  });
 });
