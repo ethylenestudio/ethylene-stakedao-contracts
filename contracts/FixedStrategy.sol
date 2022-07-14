@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IOneInch.sol";
 import "./interfaces/IStakeDao.sol";
 import "./interfaces/IStableMasterFront.sol";
+import "hardhat/console.sol";
 
 contract FixedStrategy is Ownable {
     ///////////////////// INTERFACEs & LIBRARIES /////////////////////
@@ -96,27 +97,24 @@ contract FixedStrategy is Ownable {
             stakeTimestamps[msg.sender] + 90 days <= block.timestamp,
             "[withdraw] Early withdraw!"
         );
-
         uint256 tokenBalance = (shares * pricePerShare()) / 1e18;
-        userToShare[msg.sender] -= shares;
-        totalSupply -= shares;
 
         if (tokenBalance > token.balanceOf(address(this)))
             angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
+
+        if (currentRatioForUser() >= maxYield) {
+            console.log(currentRatioForUser());
+            uint256 withdrawAmount = maxEarningToDate(shares);
+            token.safeTransfer(owner(), tokenBalance - withdrawAmount);
+            tokenBalance = withdrawAmount;
+        }
+        userToShare[msg.sender] -= shares;
+        totalSupply -= shares;
 
         if (userToShare[msg.sender] == 0) {
             delete (initialPPS[msg.sender]);
             delete (stakeTimestamps[msg.sender]);
         }
-
-        if (currentRatioForUser() >= maxYield) {
-            uint256 withdrawAmount = maxEarningToDate(
-                (shares * initialPPS[msg.sender]) / 1e18
-            );
-            token.safeTransfer(owner(), tokenBalance - withdrawAmount);
-            tokenBalance = withdrawAmount;
-        }
-
         token.safeTransfer(msg.sender, tokenBalance);
 
         emit Withdraw(msg.sender, tokenBalance);
@@ -255,9 +253,13 @@ contract FixedStrategy is Ownable {
         return ((ppsChange * 365 days) / timePast);
     }
 
-    function maxEarningToDate(uint256 amount) public view returns (uint256) {
+    function maxEarningToDate(uint256 shares) public view returns (uint256) {
+        uint256 amount = (shares * initialPPS[msg.sender]) / 1e18;
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
-        return (amount * (1000 + ((timePast * maxYield) / 365 days))) / 1000;
+        uint256 check = amount +
+            (((amount * timePast * maxYield) / 365 days) / 1000); //check
+        console.log(check);
+        return amount + (((amount * timePast * maxYield) / 365 days) / 1000);
     }
 
     function getBalanceInGauge() public view returns (uint256) {
