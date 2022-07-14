@@ -10,15 +10,17 @@ const ONEINCH_ROUTER_ADDRESS = "0x1111111254fb6c44bAC0beD2854e76F90643097d";
 const ANGLE_SM_ADDRESS = "0x5adDc89785D75C86aB939E9e15bfBBb7Fc086A87";
 const ANGLE_GAUGE_ADDRESS = "0xB6261Be83EA2D58d8dd4a73f3F1A353fa1044Ef7";
 const SANFRAX_EUR_ADDRESS = "0xb3B209Bb213A5Da5B947C56f2C770b3E1015f1FE";
+const FRAX_ADDRESS = "0x853d955aCEf822Db058eb8505911ED77F175b99e";
 
 // Addresses to be Imprersonated
 const SANFRAX_EUR_HOLDER = "0xA2dEe32662F6243dA539bf6A8613F9A9e39843D3"; // Has 100 token
+const FRAX_HOLDER = "0x79cC5b81438f72e2261f30602f17f33999db7cf3";
 
 describe("Fixed Strategy Contract", async function () {
-  let owner, alice, bob, sanfrax_eur_holder;
+  let owner, alice, bob, sanfrax_eur_holder, frax_holder;
   let oneInchContract, oneInch;
   let strategy;
-  let sanfrax_eur;
+  let sanfrax_eur, frax;
 
   before(async function () {
     [owner, alice, bob] = await ethers.getSigners();
@@ -27,16 +29,23 @@ describe("Fixed Strategy Contract", async function () {
       method: "hardhat_impersonateAccount",
       params: [SANFRAX_EUR_HOLDER],
     });
+
+    await network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: [FRAX_HOLDER],
+    });
     sanfrax_eur_holder = await ethers.getSigner(SANFRAX_EUR_HOLDER);
+    frax_holder = await ethers.getSigner(FRAX_HOLDER);
 
     oneInchContract = await ethers.getContractFactory("MockOneInch");
     oneInch = await oneInchContract.deploy();
+    await oneInch.deployed();
 
     const strContract = await ethers.getContractFactory("FixedStrategy");
     strategy = await strContract.deploy(
       ANGLE_VAULT_ADDRESS,
       ANGLE_STRATEGY_ADDRESS,
-      ONEINCH_ROUTER_ADDRESS,
+      oneInch.address, //ONEINCH_ROUTER_ADDRESS != mock for now
       ANGLE_SM_ADDRESS,
       ANGLE_GAUGE_ADDRESS,
       SANFRAX_EUR_ADDRESS
@@ -48,6 +57,8 @@ describe("Fixed Strategy Contract", async function () {
       abi,
       sanfrax_eur_holder
     );
+
+    frax = new ethers.Contract(FRAX_ADDRESS, abi, frax_holder);
   });
 
   //////////////////////////////////////////
@@ -133,6 +144,25 @@ describe("Fixed Strategy Contract", async function () {
 
   //////////////////////////////////////////
 
+  it("Deposits sanToken to contract on behalf of Bob", async function () {
+    const approveToken = await sanfrax_eur
+      .connect(bob)
+      .approve(strategy.address, ethers.utils.parseEther("100"));
+    await approveToken.wait();
+
+    const pricePerShare = await strategy.pricePerShare();
+    const depositFunc = await strategy
+      .connect(bob)
+      .deposit(ethers.utils.parseEther("25"));
+    await depositFunc.wait();
+    const bobShare = await strategy.userToShare(alice.address);
+    expect(parseInt(ethers.utils.formatEther(bobShare))).to.equal(
+      parseInt(ethers.utils.parseEther("25") / pricePerShare)
+    );
+  });
+
+  //////////////////////////////////////////
+
   it("Deposits contract tokens to StakeDao contract **comp", async function () {
     const prevContractBalance = await sanfrax_eur.balanceOf(strategy.address);
     const prevGaugeBalance = await strategy.getBalanceInGauge();
@@ -180,26 +210,92 @@ describe("Fixed Strategy Contract", async function () {
       "sdtBalance is",
       ethers.utils.formatEther(sdtBal).toString(),
       "anglBalance is",
-      ethers.utils.formatEther(anglBal).toString()
+      ethers.utils.formatEther(anglBal).toString(),
+      "after >3 months"
     );
   });
 
   /////////////////////////////////////////
 
+  it("Our contract swaps angl & sdt to frax -> sanfrax", async function () {
+    const sendFrax = await frax.transfer(
+      oneInch.address,
+      ethers.utils.parseEther("1000000")
+    );
+    await sendFrax.wait();
+
+    const harvestFunc = await strategy.harvest(
+      ethers.constants.AddressZero,
+      [1, 1],
+      ["0x", "0x"],
+      ["0x", "0x"]
+    );
+    await harvestFunc.wait();
+    const newBalance = await sanfrax_eur.balanceOf(strategy.address);
+    console.log(
+      "new LP collected in contract after harvesting ",
+      ethers.utils.formatEther(newBalance).toString()
+    );
+  });
+
   /////////////////////////////////////////
-  //* swap sdt & angl from 1inch
-  //* calc pps again
+
+  it("Reinvests collected LP's in this contract", async () => {
+    const reinvest = await strategy.comp(true);
+    await reinvest.wait();
+    const newPPS = await strategy.pricePerShare();
+    console.log(
+      "new PPS with the harvest & restake ",
+      ethers.utils.formatEther(newPPS)
+    );
+  });
+
   /////////////////////////////////////////
 
   it("Alice withdraws some of her funds", async function () {
-    //roll the time 3 months***
     const currentPPS = await strategy.pricePerShare();
+    const currentRatio = await strategy.connect(alice).currentRatioForUser();
     const withdrawAlice = await strategy
       .connect(alice)
       .withdraw(ethers.utils.parseEther("10"));
     await withdrawAlice.wait();
     const sanBalanceAlice = await sanfrax_eur.balanceOf(alice.address);
-    const shareOfAlice = await strategy.userToShare(alice.address);
-    const totalShares = await strategy.totalSupply();
+    console.log(
+      `Alice entered to the pool with 25 LP tokens at a rate of 1PPS, Alice withdraws 10LP after 3 months with PPS of ${ethers.utils.formatEther(
+        currentPPS
+      )}, she now owns ${ethers.utils.formatEther(
+        sanBalanceAlice
+      )} LP tokens + 15 shares. Her apr is ${currentRatio / 10}%`
+    );
+  });
+
+  /////////////////////////////////////////
+
+  it("Bob withdraws all of his funds", async function () {
+    const currentPPS = await strategy.pricePerShare();
+    const withdrawBob = await strategy
+      .connect(bob)
+      .withdraw(ethers.utils.parseEther("25"));
+    await withdrawBob.wait();
+    const sanBalanceBob = await sanfrax_eur.balanceOf(bob.address);
+    console.log(
+      `Bob entered to the pool with 25 LP tokens at a rate of 1PPS, Bob withdraws 25LP after 3 months with PPS of ${ethers.utils.formatEther(
+        currentPPS
+      )}, he now owns ${ethers.utils.formatEther(
+        sanBalanceBob
+      )} LP tokens + 0 shares.`
+    );
+
+    const contractBalance = await strategy.getBalanceInGauge();
+    console.log(
+      "contract still has ",
+      ethers.utils.formatEther(contractBalance),
+      "LP tokens"
+    );
+    const ownerShare = await sanfrax_eur.balanceOf(owner.address);
+    console.log(
+      "owner rewarded with fees +8% which is equal to: ",
+      ethers.utils.formatEther(ownerShare)
+    );
   });
 });

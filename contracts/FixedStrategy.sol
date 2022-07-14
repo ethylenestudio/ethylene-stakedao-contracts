@@ -101,9 +101,7 @@ contract FixedStrategy is Ownable {
 
         if (tokenBalance > token.balanceOf(address(this)))
             angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
-
         if (currentRatioForUser() >= maxYield) {
-            console.log(currentRatioForUser());
             uint256 withdrawAmount = maxEarningToDate(shares);
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
             tokenBalance = withdrawAmount;
@@ -128,11 +126,6 @@ contract FixedStrategy is Ownable {
         require(emergency, "[withdraw] Not Emergency");
         uint256 tokenBalance = (userToShare[msg.sender] * pricePerShare()) /
             1e18;
-        delete userToShare[msg.sender];
-        totalSupply -= tokenBalance;
-
-        delete (initialPPS[msg.sender]);
-        delete (stakeTimestamps[msg.sender]);
 
         if (tokenBalance > token.balanceOf(address(this)))
             angleVault.withdraw(tokenBalance - token.balanceOf(address(this)));
@@ -142,9 +135,14 @@ contract FixedStrategy is Ownable {
                 (tokenBalance * initialPPS[msg.sender]) / 1e18
             );
             token.safeTransfer(owner(), tokenBalance - withdrawAmount);
+
             tokenBalance = withdrawAmount;
         }
+        delete userToShare[msg.sender];
+        totalSupply -= tokenBalance;
 
+        delete (initialPPS[msg.sender]);
+        delete (stakeTimestamps[msg.sender]);
         token.safeTransfer(msg.sender, tokenBalance);
 
         emit EmergencyWithdraw(msg.sender, tokenBalance);
@@ -256,9 +254,6 @@ contract FixedStrategy is Ownable {
     function maxEarningToDate(uint256 shares) public view returns (uint256) {
         uint256 amount = (shares * initialPPS[msg.sender]) / 1e18;
         uint256 timePast = block.timestamp - stakeTimestamps[msg.sender];
-        uint256 check = amount +
-            (((amount * timePast * maxYield) / 365 days) / 1000); //check
-        console.log(check);
         return amount + (((amount * timePast * maxYield) / 365 days) / 1000);
     }
 
