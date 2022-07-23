@@ -9,12 +9,13 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
+      chainId: 1337,
       forking: {
         url: ALCHEMY_KEY,
       },
     },
     fork: {
       url: "http://127.0.0.1:8545/",
-    }
+    },
   },
 };
