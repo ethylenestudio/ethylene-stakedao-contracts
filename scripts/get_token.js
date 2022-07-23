@@ -3,7 +3,9 @@ let provider = ethers.provider;
 
 
 const CRV_HOLDER = "0x32D03DB62e464c9168e41028FFa6E9a05D8C6451";
+const sdCRV_HOLDER = "0x230CefA37119109cC20351Ef6a0a92291a07DA32";
 const CRV_ADDRESS = "0xD533a949740bb3306d119CC777fa900bA034cd52";
+const sdCRV_ADDRESS = "0xD1b5651E55D4CeeD36251c61c50C889B36F6abB5";
 const RECEIVER_ADDRESS = "0x55aEd0ce035883626e536254dda2F23a5b5D977f";
 
 const TOKEN_ABI = [
@@ -13,20 +15,30 @@ const TOKEN_ABI = [
 
 
 (async function main() {
-    let crv_holder, crv;
+    let sdcrv_holder, crv_holder, crv, sdcrv;
     
     await network.provider.request({
         method: "hardhat_impersonateAccount",
         params: [CRV_HOLDER],
     });
+    await network.provider.request({
+        method: "hardhat_impersonateAccount",
+        params: [sdCRV_HOLDER],
+    });
     
     crv_holder = await ethers.getSigner(CRV_HOLDER);
+    sdcrv_holder = await ethers.getSigner(sdCRV_HOLDER);
     crv = new ethers.Contract(CRV_ADDRESS, TOKEN_ABI, provider);
 
+    sdcrv_holder = await ethers.getSigner(sdCRV_HOLDER);
+    sdcrv = new ethers.Contract(sdCRV_ADDRESS, TOKEN_ABI, provider);
+
     await crv.connect(crv_holder).transfer(RECEIVER_ADDRESS, ethers.utils.parseEther("100"));
+    await sdcrv.connect(sdcrv_holder).transfer(RECEIVER_ADDRESS, ethers.utils.parseEther("100"));
     
-    let balance = await crv.balanceOf(RECEIVER_ADDRESS);
-    console.log(balance);
+    let crv_balance = await crv.balanceOf(RECEIVER_ADDRESS);
+    let sdcrv_balance = await sdcrv.balanceOf(RECEIVER_ADDRESS);
+    console.log("CRV:", crv_balance, "\nsdCRV:", sdcrv_balance);
 
     
 })().then(() => process.exit(0))
